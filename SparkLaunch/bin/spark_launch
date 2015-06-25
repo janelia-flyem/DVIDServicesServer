@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+
+"""
+Usage: prog <server callback> <python workflow script> <workflow config file>
+
+Actions:
+    1.  Provides spark callback address to launching server (via server callback)
+    2.  Initializes spark cluster
+    3.  Runs job on server (blocking)
+    4.  Examines outputs for errors and informs callback
+
+Assumptions: The environment should be properly set by the driver.
+"""
+
+# python path must already be specified in PATH
+
+import os
+import socket
+
+# Spark paths
+SPARK_DIRS = "/usr/local/spark-current/bin:/usr/local/spark-current/sbin"
+
+# set path (not python location since it should be there)
+curr_path = os.environ["PATH"]
+os.environ["PATH"] = SPARK_DIRS + ":" + curr_path
+
+# set spark path
+SPARK_HOME = "/usr/local/spark-current"
+os.environ["SPARK-HOME"] = SPARK_HOME
+
+HOSTNAME = socket.gethostname()
+
+# ?! launch /usr/local/spark-current/sbin/start-master.sh
+
+# this sets default master -- does not need to be specified on commandline
+os.environ["MASTER"] = "spark://" + HOSTNAME + ":7077"
+
+# ?! callback to server
+
+
+# ?! call workflow and wait
+
+
+# ?! callback to server
