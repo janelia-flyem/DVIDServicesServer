@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+
+"""
+Usage: prog <server callback> <python workflow script> <workflow config file>
+
+Actions:
+    1.  Provides spark callback address to launching server (via server callback)
+    2.  Initializes spark cluster
+    3.  Runs job on server (blocking)
+    4.  Examines outputs for errors and informs callback
+
+Assumptions: The environment should be properly set by the driver.
+"""
+
+# python path must already be specified in PATH
+
+import os
+import socket
+import sys
+import subprocess
+
+master_output = ""
+
+try:
+    # Spark paths
+    SPARK_DIRS = "/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin:/usr/local/gcc/bin:/usr/local/cmake-2.8.8/bin:/usr/local/git-1.8.1/bin:/usr/local/spark-current/bin:/usr/local/spark-current/sbin"
+    #SPARK_DIRS = "/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin:/usr/local/gcc/bin:/usr/local/cmake-2.8.8/bin:/usr/local/git-1.8.1/bin:/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop2.6/bin:/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop2.6/sbin"
+    #SPARK_DIRS = "/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin:/usr/local/gcc/bin:/usr/local/cmake-2.8.8/bin:/usr/local/git-1.8.1/bin:/groups/scheffer/home/plazas/spark-1.2.0-bin-hadoop2.4/bin:/groups/scheffer/home/plazas/spark-1.2.0-bin-hadoop2.4/sbin"
+    #SPARK_DIRS = "/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin:/usr/local/gcc/bin:/usr/local/cmake-2.8.8/bin:/usr/local/git-1.8.1/bin:/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop1/bin:/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop1/sbin"
+
+    # set path (not python location since it should be there)
+    curr_path = os.environ["PATH"]
+    os.environ["PATH"] = SPARK_DIRS + ":" + curr_path
+
+    # set spark path
+    SPARK_HOME = "/usr/local/spark-current"
+    #SPARK_HOME = "/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop2.6"
+    #SPARK_HOME = "/groups/scheffer/home/plazas/spark-1.2.0-bin-hadoop2.4"
+    #SPARK_HOME = "/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop1"
+    os.environ["SPARK_HOME"] = SPARK_HOME
+    
+    # use custom one in local spark for now
+    #os.environ["SPARK_CONF_DIR"] = SPARK_HOME + "/conf"
+    os.environ["SPARK_CONF_DIR"] = "/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop2.6/conf"
+    os.environ["LD_LIBRARY_PATH"] = "/usr/local/gcc/lib64"
+
+    HOSTNAME = socket.gethostname()
+
+    # launch spark cluster
+    #master_output = subprocess.check_output(['/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop2.6/sbin/start-master.sh'])
+    #master_output = subprocess.check_output(['/groups/scheffer/home/plazas/spark-1.4.0-bin-hadoop1/sbin/start-master.sh'])
+    #master_output = subprocess.check_output(['/groups/scheffer/home/plazas/spark-1.2.0-bin-hadoop2.4/sbin/start-master.sh'])
+    master_output = subprocess.check_output(['/usr/local/spark-current/sbin/start-master.sh'])
+    
+    # this sets default master -- does not need to be specified on commandline
+    os.environ["MASTER"] = "spark://" + HOSTNAME + ":7077"
+
+    master_output = master_output + "\n" + os.environ["MASTER"]
+
+    # ?! callback to server
+
+    # probably unnecessary
+    os.system("echo " + os.environ["MASTER"] + " > " + os.path.expanduser("~") + "/spark-master")
+
+    # ?! call workflow and wait
+    #job_output = subprocess.check_output(['spark-submit', '--master', os.environ["MASTER"], sys.argv[1]])
+    os.system("spark-submit --verbose --master " + os.environ["MASTER"] + " " + sys.argv[1] + " >& " + sys.argv[2])
+
+    #os.system("sleep 3000")
+    master_output = master_output + "\n" + job_output
+except:
+    master_output += str(sys.exc_info()[0])
+
+fout = open(sys.argv[2], 'w')
+fout.write(master_output)
+
+
+# ?! callback to server
