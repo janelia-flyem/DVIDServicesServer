@@ -1,0 +1,5 @@
+-implement job submit (calling of wrapper)
+-implement job status infrastructure on server
+-add remaining hooks to spark job submission scripts
+-add callback code and job output handling to scripts
+

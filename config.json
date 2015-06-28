@@ -1,0 +1,5 @@
+{
+    "log-dir" : "/tmp",
+    "workflow-dir": "/home/plazas/development/DVIDSparkServices/workflows",
+    "web-console": "/home/plazas/development/DVIDServicesConsole/build"
+}
