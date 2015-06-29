@@ -32,7 +32,7 @@ type sparkJob struct {
 	service_type  string // what service is being run
 	job_id        string // auto-generated job ID
 	log_loc       string // where are results stored
-	status        string // current status ("Started
+	status        string // current status ("Started")
 	message       string
 	configuration map[string]interface{}
 	spark_address string
@@ -49,7 +49,7 @@ func NewSparkJob(service_name string, config map[string]interface{}) *sparkJob {
 	tstamp := int(time.Now().Unix())
 	job.job_id = job.job_id + "-" + strconv.Itoa(tstamp)
 
-	job.status = "Not started"
+	job.status = "Started"
 	job.message = ""
 	job.configuration = config
 

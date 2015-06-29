@@ -159,9 +159,9 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		JobManager.SetJobStatus(jobinfo.GetID(), jobinfo)
 
 		fmt.Fprintf(w, "")
+	} else {
+		badRequest(w, "must be get or post")
 	}
-
-	badRequest(w, "must be get or post")
 }
 
 func servicesHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,8 +230,8 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 
 		// write back call back
 		w.Header().Set("Content-Type", "application/json")
-		jsonbytes, _ := json.Marshal(map[string]interface{}{"callBack": statusPath+spark_job.GetID()})
-                fmt.Fprintf(w, string(jsonbytes))
+		jsonbytes, _ := json.Marshal(map[string]interface{}{"callBack": statusPath + spark_job.GetID()})
+		fmt.Fprintf(w, string(jsonbytes))
 
 	} else {
 		badRequest(w, "only supports gets and posts")
