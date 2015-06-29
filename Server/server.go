@@ -19,6 +19,7 @@ const (
 	servicePath    = "/service/"
 	statusPath     = "/jobstatus/"
 	sparkScript    = "spark_launch_wrapper"
+	numNodes       = "16"
 	workflowscript = "launchworkflow.py"
 )
 
@@ -294,7 +295,7 @@ func Serve(port int, config_file string) {
 	fmt.Printf("Running...\n")
 
 	// initialize ExeParams
-	executableParams = ExeParams{logDirectory, remoteMachine, remoteUser, sparkScript, remoteEnv}
+	executableParams = ExeParams{logDirectory, remoteMachine, remoteUser, sparkScript, numNodes, remoteEnv}
 
 	httpserver := &http.Server{Addr: webAddress}
 

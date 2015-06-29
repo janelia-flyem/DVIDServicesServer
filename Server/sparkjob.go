@@ -25,6 +25,7 @@ type ExeParams struct {
 	remote_machine string   // location of remote machine
 	remote_user    string   // name of remote user
 	cluster_script string   // name of cluster launch script
+	num_nodes      string   // number of spark nodes to launch 
 	remote_env     []string // slice of environment variables to set
 }
 
@@ -32,7 +33,7 @@ type sparkJob struct {
 	service_type  string // what service is being run
 	job_id        string // auto-generated job ID
 	log_loc       string // where are results stored
-	status        string // current status ("Started")
+	status        string // current status ("Waiting")
 	message       string
 	configuration map[string]interface{}
 	spark_address string
@@ -49,7 +50,7 @@ func NewSparkJob(service_name string, config map[string]interface{}) *sparkJob {
 	tstamp := int(time.Now().Unix())
 	job.job_id = job.job_id + "-" + strconv.Itoa(tstamp)
 
-	job.status = "Started"
+	job.status = "Waiting"
 	job.message = ""
 	job.configuration = config
 
@@ -69,7 +70,7 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 	err = nil
 
 	if exe_params.remote_machine == "" {
-		_, err2 := exec.Command(exe_params.cluster_script, job.service_type, job.log_loc, web_address+"/jobstatus/"+job.job_id).Output()
+		_, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, web_address+"/jobstatus/"+job.job_id).Output()
 		err = err2
 	} else {
 		var argument_str string
@@ -78,7 +79,7 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 			argument_str += "export " + envvar + "; "
 		}
 		argument_str += (exe_params.cluster_script)
-		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str, job.service_type, job.log_loc, web_address+"/jobstatus/"+job.job_id).Output()
+		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str, exe_params.num_nodes, job.service_type, job.log_loc, web_address+"/jobstatus/"+job.job_id).Output()
 		err = err2
 	}
 

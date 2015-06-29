@@ -58,7 +58,7 @@ title: Interface for DVID Services
                   "job_status": {
                     "description": "State of the job",
                     "type": "string",
-                    "enum": [ "Submitted", "Running", "Finished", "Error" ]
+                    "enum": [ "Waiting", "Running", "Finished", "Error" ]
                   },
                   "job_message": {
                     "description": "Information related to the job status",
