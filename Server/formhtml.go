@@ -1,7 +1,7 @@
 package Server
 
 // String representing html for accessing DVID Spark services
-const formHTML=`
+const formHTML = `
 <html>
 <head>
     <title> DVID Services Console </title>

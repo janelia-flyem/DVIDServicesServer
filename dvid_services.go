@@ -10,9 +10,9 @@ import (
 const defaultPort = 15000
 
 var (
-	portNum  = flag.Int("port", defaultPort, "")
-	showHelp = flag.Bool("help", false, "")
-        configFile = flag.String("config", "", "")
+	portNum    = flag.Int("port", defaultPort, "")
+	showHelp   = flag.Bool("help", false, "")
+	configFile = flag.String("config", "", "")
 )
 
 const helpMessage = `
@@ -34,10 +34,10 @@ func main() {
 	}
 
 	if flag.NArg() != 1 {
-                fmt.Println("Must provide a config file for web front-end and location of DVIDServices")
-                fmt.Println(helpMessage)
-                os.Exit(0)
-        }
+		fmt.Println("Must provide a config file for web front-end and location of DVIDServices")
+		fmt.Println(helpMessage)
+		os.Exit(0)
+	}
 
 	Server.Serve(*portNum, flag.Arg(0))
 }
