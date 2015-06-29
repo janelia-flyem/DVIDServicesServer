@@ -64,13 +64,13 @@ func (job *sparkJob) GetID() string {
 }
 
 func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
-	job.log_loc = exe_params.log_dir + "/" + job.job_id + "/"
+	job.log_loc = exe_params.log_dir + "/" + job.job_id
 
 	var err error
 	err = nil
 
 	if exe_params.remote_machine == "" {
-		_, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, web_address+"/jobstatus/"+job.job_id).Output()
+		_, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, "http://" + web_address+"/jobstatus/"+job.job_id).Output()
 		err = err2
 	} else {
 		var argument_str string
@@ -79,7 +79,7 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 			argument_str += "export " + envvar + "; "
 		}
 		argument_str += (exe_params.cluster_script)
-		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str, exe_params.num_nodes, job.service_type, job.log_loc, web_address+"/jobstatus/"+job.job_id).Output()
+		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str, exe_params.num_nodes, job.service_type, job.log_loc, "http://" + web_address+"/jobstatus/"+job.job_id).Output()
 		err = err2
 	}
 
