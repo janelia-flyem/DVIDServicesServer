@@ -6,7 +6,7 @@
     "remote-user": "plazas",
     "remote-environment": [
         "PATH=/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin:/groups/scheffer/home/plazas/bin:/usr/bin:/bin",
-        "LD_LIBRARY_PATH=/usr/local/gcc/lib64:/groups/scheffer/home/plazas/development/buildem_sparkcluster/lib",
+        "LD_LIBRARY_PATH=/usr/local/gcc/lib64",
         "DRMAA_LIBRARY_PATH=/sge/current/lib/lx-amd64/libdrmaa.so",
         "SGE_QMASTER_PORT=6454",
         "SGE_EXECD_PORT=6453",

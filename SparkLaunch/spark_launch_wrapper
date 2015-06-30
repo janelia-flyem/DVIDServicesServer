@@ -33,4 +33,4 @@ try:
     jobid = s.runJob(jt)
 except Exception as e:
     print str(e)
-
+    exit(-1)

@@ -27,6 +27,7 @@ master_output = ""
 successful = True
 
 json_header = {'content-type': 'app/json'}
+start = time.time()
 
 try:
     # ***** Custom Parameters ******
@@ -98,7 +99,7 @@ try:
 
     # call workflow and wait
     try:
-        job_output = subprocess.check_output(['spark-submit', '--master', 'local[4]', WORKFLOW_LAUNCHER, sys.argv[1], '-c', config_location])
+        job_output = subprocess.check_output(['spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', config_location])
     except subprocess.CalledProcessError as e:
         job_output += str(e)
         successful = False
@@ -112,6 +113,10 @@ except Exception as e:
     master_output += str(sys.exc_info()[0])
     successful = False
 
+# record time
+finish = time.time()
+master_output += "\n" + "Total Time: " + str(finish-start)
+
 # write status and message
 status = {}
 status["sparkAddr"] = ""
@@ -123,6 +128,7 @@ else:
     status["job_message"] = master_output
 status_str = json.dumps(status)
 requests.post(sys.argv[3], data=status_str, headers=json_header)
+
 
 # write to file
 fout = open(sys.argv[2]+'.log', 'w')
