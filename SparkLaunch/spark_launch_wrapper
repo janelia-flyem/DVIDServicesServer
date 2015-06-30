@@ -10,16 +10,27 @@ Assumptions:
     2. spark_launch should be in the executable path
 """
 
-import sys
-import os
+try:
+    import sys
+    import os
+    import drmaa
 
+    # set up drmaa session
+    s = drmaa.Session()
+    s.initialize()
+    jt = s.createJobTemplate()
+    
+    # (ADD CUSTOM NON-BLOCKING CALL TO LAUNCH SCRIPT ON SPARK MASTER!!)
+    # use current environment and launch with number of machines (1 for master)
+    
+    jt.nativeSpecification = "-jc spark -pe spark " + str(int(sys.argv[1])+1) + " -q hadoop2 -j y -V -o " + sys.argv[3]+".wrapper.log" + " -m b" 
+    jt.remoteCommand = "spark_launch"
 
-# use current environment and launch with number of machines (1 for master)
-# (ADD CUSTOM NON-BLOCKING CALL TO LAUNCH SCRIPT ON SPARK MASTER!!)
-command = "qsub -jc spark -pe spark " + str(int(sys.argv[1])+1) + " -q hadoop2 -j y -V -o " + sys.argv[2]+".wrapper.log" + " -m b spark_launch "
+    # provides service name, log location, and callback
+    jt.args = sys.argv[2:]
 
-# add python script location and its configuration file
-command += " ".join(sys.argv[2:])
-
-os.system(command)
+    # run job
+    jobid = s.runJob(jt)
+except Exception as e:
+    print str(e)
 

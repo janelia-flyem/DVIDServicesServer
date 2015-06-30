@@ -39,6 +39,9 @@ try:
     # workflow launcher path (CHANGE AS NEEDED!!)
     WORKFLOW_LAUNCHER = "/groups/scheffer/home/plazas/development/DVIDSparkServices/workflows/launchworkflow.py"
     
+    # spark configuration path (disable default python) (CHANGE AS NEEDED!!)
+    CONF_DIR = "/groups/scheffer/home/plazas/development/DVIDSparkServices/conf"
+    
     # set custom library paths (CHANGE AS NEEDED!!)
     os.environ["LD_LIBRARY_PATH"] = "/usr/local/gcc/lib64"
    
@@ -52,6 +55,9 @@ try:
 
     # set spark path
     os.environ["SPARK_HOME"] = SPARK_HOME
+
+    # set configuration directory
+    os.environ["SPARK_CONF_DIR"] = CONF_DIR
 
     # set exact python to be used
     os.environ["PYSPARK_PYTHON"] = DVIDSPARK_PATH + "/python"

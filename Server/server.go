@@ -125,6 +125,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		outputData["config"] = jobinfo.configuration
 
 		jsonbytes, _ := json.Marshal(outputData)
+                w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, string(jsonbytes))
 
 		return

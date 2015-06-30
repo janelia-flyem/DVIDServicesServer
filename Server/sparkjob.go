@@ -78,9 +78,12 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 			// assume shell allows for export of variables
 			argument_str += "export " + envvar + "; "
 		}
-		argument_str += (exe_params.cluster_script)
-		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str, exe_params.num_nodes, job.service_type, job.log_loc, "http://" + web_address+"/jobstatus/"+job.job_id).Output()
-		err = err2
+		
+                argument_str += (exe_params.cluster_script)
+		argument_str += " " + exe_params.num_nodes + " " + job.service_type + " " + job.log_loc + " " + "http://" + web_address+"/jobstatus/"+job.job_id 
+                
+		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str).Output()
+                err = err2
 	}
 
 	return err
