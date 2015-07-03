@@ -1,7 +1,7 @@
 package Server
 
 import (
-	//"fmt"
+	"fmt"
 	"math/rand"
 	"os/exec"
 	"strconv"
@@ -70,8 +70,11 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 	err = nil
 
 	if exe_params.remote_machine == "" {
-		_, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, "http://" + web_address+"/jobstatus/"+job.job_id).Output()
-		err = err2
+	        out, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, "http://" + web_address+"/jobstatus/"+job.job_id).Output()
+                err = err2
+		if err2 != nil {
+                    err = fmt.Errorf(string(out))
+                }
 	} else {
 		var argument_str string
 		for _, envvar := range exe_params.remote_env {
@@ -82,8 +85,11 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
                 argument_str += (exe_params.cluster_script)
 		argument_str += " " + exe_params.num_nodes + " " + job.service_type + " " + job.log_loc + " " + "http://" + web_address+"/jobstatus/"+job.job_id 
                 
-		_, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str).Output()
+		out, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str).Output()
                 err = err2
+		if err2 != nil {
+                    err = fmt.Errorf(string(out))
+                }
 	}
 
 	return err

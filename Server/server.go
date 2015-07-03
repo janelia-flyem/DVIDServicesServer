@@ -64,7 +64,7 @@ func parseURI(r *http.Request, prefix string) ([]string, string, error) {
 	return path_list, requestType, nil
 }
 
-// badRequest is a halper for printing an http error message
+// badRequest is a helper for printing an http error message
 func badRequest(w http.ResponseWriter, msg string) {
 	fmt.Println(msg)
 	http.Error(w, msg, http.StatusBadRequest)
@@ -226,7 +226,7 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 		// launch job
 		err := spark_job.StartJob(executableParams, webAddress)
 		if err != nil {
-			badRequest(w, "failure to submit job")
+			badRequest(w, err.Error())
 			return
 		}
 
