@@ -3,6 +3,7 @@ package Server
 // String representing interface for DVID Spark services
 const ramlInterface = `#%%RAML 0.8
 title: Interface for DVID Services
+baseUri: /
 /services:
   get:
     description: "List services available to server" 
@@ -22,15 +23,15 @@ title: Interface for DVID Services
     responses:
       200:
         body:
-          application/json:
+          application/json: !!null
   post:
     description: "Launch service with posted JSON (schema not validated on server)" 
-      body:
-        application/json:
+    body:
+      application/json: !!null
     responses:
       200:
         body:
-          application/json:
+          application/json: 
             schema: |
               { "$schema": "http://json-schema.org/schema#",
                 "title": "Response to Job submission",
@@ -39,13 +40,13 @@ title: Interface for DVID Services
                   "callBack": {
                     "description": "URL for job status (embeds job ID)",
                     "type": "string"
-                  },
+                  }
                 },
                 "required": ["callback", "sparkAddr"]
               }
 /jobid/{jobid}:
   get:
-    description: "Retrieves job status",
+    description: "Retrieves job status"
     responses:
       200:
         body:
@@ -70,34 +71,34 @@ title: Interface for DVID Services
                   },
                   "config" : {
                     "description": "Configuration file",
-                    "type": object
+                    "type": "object"
                   }
                 },
                 "required": ["job_status", "job_message", "sparkAddr", "config"]
               }
   post:
-    description: "Set job status (should only be done by Spark driver program)",
-      body:
-        application/json:
-          schema: |
-            { "$schema": "http://json-schema.org/schema#",
-              "title": "Spark job status",
-              "type": "object",
-              "properties": {
-                "job_status": {
-                  "description": "State of the job",
-                  "type": "string",
-                  "enum": [ "Started", "Finished", "Error" ]
-                },
-                "job_message": {
-                  "description": "Information related to the job status",
-                  "type": "string"
-                },
-                "sparkAddr": {
-                  "description": "Address for monitoring spark job (can be used to access REST api for Spark >=1.4",
-                  "type": "string"
-                }
+    description: "Set job status (should only be done by Spark driver program)"
+    body:
+      application/json:
+        schema: |
+          { "$schema": "http://json-schema.org/schema#",
+            "title": "Spark job status",
+            "type": "object",
+            "properties": {
+              "job_status": {
+                "description": "State of the job",
+                "type": "string",
+                "enum": [ "Started", "Finished", "Error" ]
               },
-              "required": ["job_status", "sparkAddr"]
-            }
+              "job_message": {
+                "description": "Information related to the job status",
+                "type": "string"
+              },
+              "sparkAddr": {
+                "description": "Address for monitoring spark job (can be used to access REST api for Spark >=1.4",
+                "type": "string"
+              }
+            },
+            "required": ["job_status", "sparkAddr"]
+          }
 `
