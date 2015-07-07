@@ -17,7 +17,7 @@ in the executable path.  These scripts launch the Spark cluster and Spark applic
 [DVIDSparkServices](https://github.com/janelia-flyem/DVIDSparkServices) needs to be installed
 on the target compute cluster and the workflows must be available to the server machine.
 
-The DVIDServicesServer requires the webconsole to be installed [DVIDServicesConsole](https://github.com/janelia-flyem/DVIDServicesConsole).
+The DVIDServicesServer requires [DVIDServicesConsole](https://github.com/janelia-flyem/DVIDServicesConsole) to be installed.
 
 Set $GOPATH/bin to the executable path.
 
@@ -29,7 +29,7 @@ To launch the server:
 
 config.json contains several configurable paramters including the location of the DVIDServicesConsole
 and DVIDSparkServices.  By default, this will launch the server at port 15000 of the current
-machine (specify -port allows custom specification).
+machine (specify custom port with -port).
 
 ## Architecture Notes
 This server queries the workflow manager in DVIDSparkServices to see which services are
@@ -44,10 +44,10 @@ JOB status.  The launching of the Spark cluster and application is done
 by spark_launch_wrapper and spark_launch.  These scripts are tuned to the Janelia
 compute cluster.  The server calls spark_launch_wrapper which in turn
 calls spark_launch, which is installed on the spark cluster.  spark_launch
-starts the Spark cluster and calls the Spark workflow.  It also provides status
-information back to the server and queries the application configuration file.
+starts the Spark cluster and calls the Spark workflow.  It also communicates
+with the server by sending status information and querying the job configuration.
 
-** Configuration **
+**Configuration**
 
 Users need to modify config.json, spark_launch_wrapper, and spark_launch as appropriate.
 spark_launch_wrapper expects the following arguments:
@@ -55,18 +55,15 @@ spark_launch_wrapper expects the following arguments:
 * Number of Spark workers for the cluster
 * Name of the service plugin
 * Directory location for the log file
-* Callback to server for posting application status
+* Callback to server for posting job status
 
 ##TODO
 
 * Provide time stamps for application start and finish.
 * Automatically email user when application finishes.
-* Provide interfaces for query previous application jobs.
-* (Optional) Persist application status to disk.
+* Provide interface to query previous jobs.
+* (Optional) Persist job status to disk.
 
-
-
-### Customization for Non-Janelia Cluster
 
 
 
