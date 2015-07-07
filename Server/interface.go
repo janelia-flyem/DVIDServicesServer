@@ -101,4 +101,11 @@ baseUri: /
             },
             "required": ["job_status", "sparkAddr"]
           }
+/interface:
+  get:
+    description: "Get the interface for the cluster calculate label service"
+    responses:
+      200:
+        body:
+          application/raml+yaml:
 `
