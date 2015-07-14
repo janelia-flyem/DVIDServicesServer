@@ -25,7 +25,7 @@ type ExeParams struct {
 	remote_machine string   // location of remote machine
 	remote_user    string   // name of remote user
 	cluster_script string   // name of cluster launch script
-	num_nodes      string   // number of spark nodes to launch 
+	num_nodes      string   // number of spark nodes to launch
 	remote_env     []string // slice of environment variables to set
 }
 
@@ -34,6 +34,7 @@ type sparkJob struct {
 	job_id        string // auto-generated job ID
 	log_loc       string // where are results stored
 	status        string // current status ("Waiting")
+	runtime       int64  // initial time stamp before completion, then time in seconds
 	message       string
 	configuration map[string]interface{}
 	spark_address string
@@ -53,6 +54,7 @@ func NewSparkJob(service_name string, config map[string]interface{}) *sparkJob {
 	job.status = "Waiting"
 	job.message = ""
 	job.configuration = config
+	job.runtime = time.Now().Unix()
 
 	job.spark_address = ""
 
@@ -70,26 +72,26 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 	err = nil
 
 	if exe_params.remote_machine == "" {
-	        out, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, "http://" + web_address+"/jobstatus/"+job.job_id).Output()
-                err = err2
+		out, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, "http://"+web_address+"/jobstatus/"+job.job_id).Output()
+		err = err2
 		if err2 != nil {
-                    err = fmt.Errorf(string(out))
-                }
+			err = fmt.Errorf(string(out))
+		}
 	} else {
 		var argument_str string
 		for _, envvar := range exe_params.remote_env {
 			// assume shell allows for export of variables
 			argument_str += "export " + envvar + "; "
 		}
-		
-                argument_str += (exe_params.cluster_script)
-		argument_str += " " + exe_params.num_nodes + " " + job.service_type + " " + job.log_loc + " " + "http://" + web_address+"/jobstatus/"+job.job_id 
-                
+
+		argument_str += (exe_params.cluster_script)
+		argument_str += " " + exe_params.num_nodes + " " + job.service_type + " " + job.log_loc + " " + "http://" + web_address + "/jobstatus/" + job.job_id
+
 		out, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str).Output()
-                err = err2
+		err = err2
 		if err2 != nil {
-                    err = fmt.Errorf(string(out))
-                }
+			err = fmt.Errorf(string(out))
+		}
 	}
 
 	return err

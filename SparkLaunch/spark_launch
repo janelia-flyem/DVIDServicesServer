@@ -77,7 +77,7 @@ try:
 
     # write-back callback address
     status = {}
-    status["sparkAddr"] = HOSTNAME + ":4040"
+    status["sparkAddr"] = HOSTNAME
     status["job_status"] = "Running"
     status_str = json.dumps(status)
 

@@ -69,12 +69,16 @@ baseUri: /
                     "description": "Address for monitoring spark job (can be used to access REST api for Spark >=1.4",
                     "type": "string"
                   },
+		  "runtime": {
+		    "description": "Current runtime for job in seconds",
+		    "type": "string"
+		  },
                   "config" : {
                     "description": "Configuration file",
                     "type": "object"
                   }
                 },
-                "required": ["job_status", "job_message", "sparkAddr", "config"]
+                "required": ["job_status", "job_message", "sparkAddr", "runtime", "config"]
               }
   post:
     description: "Set job status (should only be done by Spark driver program)"

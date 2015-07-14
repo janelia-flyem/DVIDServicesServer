@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -122,10 +123,15 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		outputData["job_status"] = jobinfo.status
 		outputData["job_message"] = jobinfo.message
 		outputData["sparkAddr"] = jobinfo.spark_address
+		if jobinfo.status == "Finished" || jobinfo.status == "Error" {
+			outputData["runtime"] = jobinfo.runtime
+		} else {
+			outputData["runtime"] = time.Now().Unix() - jobinfo.runtime
+		}
 		outputData["config"] = jobinfo.configuration
 
 		jsonbytes, _ := json.Marshal(outputData)
-                w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, string(jsonbytes))
 
 		return
@@ -144,6 +150,9 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			jobinfo.status, _ = status.(string)
+			if jobinfo.status == "Finished" || jobinfo.status == "Error" {
+				jobinfo.runtime = time.Now().Unix() - jobinfo.runtime
+			}
 		}
 
 		if spark, found := json_data["sparkAddr"]; !found {
