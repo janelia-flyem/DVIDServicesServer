@@ -3,6 +3,7 @@ package Server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -105,7 +106,7 @@ func frontHandler(w http.ResponseWriter, r *http.Request) {
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
 	pathlist, requestType, err := parseURI(r, statusPath)
-	if err != nil || len(pathlist) != 1 {
+	if err != nil {
 		badRequest(w, "Error: incorrectly formatted request")
 		return
 	}
@@ -114,6 +115,30 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	jobinfo, found := JobManager.GetJobStatus(pathlist[0])
 	if !found {
 		badRequest(w, "Error: job id not found")
+		return
+	}
+
+	if len(pathlist) > 1 {
+		// call spark rest api
+		if jobinfo.spark_address == "" {
+			badRequest(w, "Error: spark driver location unknown")
+			return
+		}
+
+		restapi := jobinfo.spark_address + ":4040/" + strings.Join(pathlist[1:], "/")
+		resp, err := http.Get(restapi)
+		if err != nil {
+			badRequest(w, "Error: server not available")
+			return
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			badRequest(w, "Error: server not available")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, string(body))
 		return
 	}
 

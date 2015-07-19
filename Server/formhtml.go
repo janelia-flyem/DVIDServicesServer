@@ -5,7 +5,7 @@ const formHTML = `
 <html>
 <head>
     <title> DVID Services Console </title>
-    <script src="/js/bundle.js"></script>
+    <script src="/js/bundle.min.js"></script>
 </head>
 <body>
     <div id="DVIDServicesWidget" data-serviceloc="" />
