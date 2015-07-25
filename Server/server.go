@@ -125,7 +125,15 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		restapi := jobinfo.spark_address + ":4040/" + strings.Join(pathlist[1:], "/")
+                defaultport := ":4040/"
+        
+                // TODO: look at history server instead when the job finishes 
+                if jobinfo.status == "Finished" || jobinfo.status == "Error" {
+                    defaultport = ":4040/"
+                }
+
+		restapi := "http://" + jobinfo.spark_address + defaultport + strings.Join(pathlist[1:], "/")
+
 		resp, err := http.Get(restapi)
 		if err != nil {
 			badRequest(w, "Error: server not available")

@@ -32,19 +32,19 @@ start = time.time()
 try:
     # ***** Custom Parameters ******
     # location of spark build (CHANGE AS NEEDED!!)
-    SPARK_HOME = "/usr/local/spark-current"
+    SPARK_HOME = "/usr/local/spark-rc"
 
     # location of DVIDSparkServices binaries (CHANGE AS NEEDED!!)
-    DVIDSPARK_PATH = "/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin"
+    DVIDSPARK_PATH = "/groups/scheffer/home/plazas/miniconda/envs/clusterbuilds/bin"
 
     # workflow launcher path (CHANGE AS NEEDED!!)
-    WORKFLOW_LAUNCHER = "/groups/scheffer/home/plazas/development/DVIDSparkServices/workflows/launchworkflow.py"
+    WORKFLOW_LAUNCHER = "/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/workflows/launchworkflow.py"
     
     # spark configuration path (disable default python) (CHANGE AS NEEDED!!)
-    CONF_DIR = "/groups/scheffer/home/plazas/development/DVIDSparkServices/conf"
+    CONF_DIR = "/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/conf"
     
     # set custom library paths (CHANGE AS NEEDED!!)
-    os.environ["LD_LIBRARY_PATH"] = "/usr/local/gcc/lib64"
+    #os.environ["LD_LIBRARY_PATH"] = "/usr/local/gcc/lib64"
    
     # ***** Derived Parameters *****
     # Add directories to PATH
@@ -65,13 +65,13 @@ try:
 
     # ******** Launch Spark Cluster *******
     HOSTNAME = socket.gethostname()
-    master_output = subprocess.check_output(['/usr/local/spark-current/sbin/start-master.sh'])
+
+    master_output = subprocess.check_output(['/usr/local/spark-rc/sbin/start-master.sh'])
     
     # this sets default master -- does not need to be specified on commandline
     os.environ["MASTER"] = "spark://" + HOSTNAME + ":7077"
 
     master_output = master_output + "\n" + os.environ["MASTER"]
-    
 
     # ******** Start Job ********
 
@@ -99,14 +99,15 @@ try:
 
     # call workflow and wait
     try:
-        job_output = subprocess.check_output(['spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', config_location])
-    except subprocess.CalledProcessError as e:
-        job_output += str(e)
+        job_output = subprocess.check_output(['/usr/local/spark-rc/bin/spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', config_location])
+    except Exception as e:
+        job_output += str(sys.exc_info()[0])
         successful = False
+   
+    time.sleep(20)
 
     # remove temporary file
     os.remove(config_location)
-
 
     master_output = master_output + "\n" + job_output
 except Exception as e:
