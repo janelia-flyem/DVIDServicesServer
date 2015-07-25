@@ -14,10 +14,10 @@ The SparkLaunch/ directory contains two Python executables that should are calle
 from the server -- spark_launch_wrapper and spark_launch.  These should be installed
 in the executable path.  These scripts launch the Spark cluster and Spark application.
 
-[DVIDSparkServices](https://github.com/janelia-flyem/DVIDSparkServices) needs to be installed
-on the target compute cluster and the workflows must be available to the server machine.
+[DVIDSparkServices](https://github.com/janelia-flyem/DVIDSparkServices) should be installed
+where the server is running and also on the cluster running Spark.
 
-The DVIDServicesServer requires [DVIDServicesConsole](https://github.com/janelia-flyem/DVIDServicesConsole) to be installed.
+The DVIDServicesServer uses [DVIDServicesConsole](https://github.com/janelia-flyem/DVIDServicesConsole) as a web-front end.  If this is not installed and pointed to, access to the server should be done directly through its REST api.
 
 Set $GOPATH/bin to the executable path.
 
@@ -29,7 +29,14 @@ To launch the server:
 
 config.json contains several configurable paramters including the location of the DVIDServicesConsole
 and DVIDSparkServices.  By default, this will launch the server at port 15000 of the current
-machine (specify custom port with -port).
+machine (specify custom port with -port).  If you are not using the web front-end, please retrieve
+the interface by querying * < SERVER ADDRESS > : 15000/interface *
+
+## Configuration
+
+Several configurations need to be set properly to run on your target environment.  Users need to modify config.json, spark_launch_wrapper, and spark_launch as appropriate.  Please consult those files for details.  If this server must access the cluster remotely, the server must be set-up for password-less login.
+
+This package was designed for use in the Janelia SGE compute cluster but should work with proper configuration settings.  The spark_launch_wrapper simply launches the job script for the SGE environment and will probably need to be rewritten accordingly.  The spark_launch script has several SPARK build location constants that need to be changed.
 
 ## Architecture Notes
 This server queries the workflow manager in DVIDSparkServices to see which services are
@@ -47,21 +54,10 @@ calls spark_launch, which is installed on the spark cluster.  spark_launch
 starts the Spark cluster and calls the Spark workflow.  It also communicates
 with the server by sending status information and querying the job configuration.
 
-**Configuration**
-
-Users need to modify config.json, spark_launch_wrapper, and spark_launch as appropriate.
-spark_launch_wrapper expects the following arguments:
-
-* Number of Spark workers for the cluster
-* Name of the service plugin
-* Directory location for the log file
-* Callback to server for posting job status
-
 ##TODO
 
-* Provide time stamps for application start and finish.
-* Automatically email user when application finishes.
-* Provide interface to query previous jobs.
+* Option to automatically email user when application finishes.
+* Better handle job failure situation.
 * (Optional) Persist job status to disk.
 
 
