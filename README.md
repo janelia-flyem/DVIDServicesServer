@@ -10,9 +10,8 @@ The package can then be installed by:
 
     % go get github.com/janelia-flyem/DVIDServicesServer
 
-The SparkLaunch/ directory contains two Python executables that should are called
-from the server -- spark_launch_wrapper and spark_launch.  These should be installed
-in the executable path.  These scripts launch the Spark cluster and Spark application.
+The SparkLaunch/ directory contains plugins for launching a spark cluster that calls
+DVIDSparkServices with the appropriate parameters.  See notes on configuration below. 
 
 [DVIDSparkServices](https://github.com/janelia-flyem/DVIDSparkServices) should be installed
 where the server is running and also on the cluster running Spark.
@@ -32,11 +31,19 @@ and DVIDSparkServices.  By default, this will launch the server at port 15000 of
 machine (specify custom port with -port).  If you are not using the web front-end, please retrieve
 the interface by querying * < SERVER ADDRESS > : 15000/interface *
 
-## Configuration
+## Configuration and Launching the Spark Cluster
 
-Several configurations need to be set properly to run on your target environment.  Users need to modify config.json, spark_launch_wrapper, and spark_launch as appropriate.  Please consult those files for details.  If this server must access the cluster remotely, the server must be set-up for password-less login.
+Several configurations need to be set properly to run on your target environment.  Users need to modify config.json and modify the desired plugin in SparkLaunch/ as appropriate.
 
-This package was designed for use in the Janelia SGE compute cluster but should work with proper configuration settings.  The spark_launch_wrapper simply launches the job script for the SGE environment and will probably need to be rewritten accordingly.  The spark_launch script has several SPARK build location constants that need to be changed.
+1. The top-level config file expects the location of the static javascript in DVIDServicesConsole (download the release version and point to 'dist').  
+
+2. DVIDSparkServices must be downloaded and the workflows path specified.
+
+3. An executable that launches the spark cluster should be provided.  Make sure this exetuable is in the PATH.
+
+4. If the executable must be launched via ssh, save the ssh password token to allow access through the program.
+
+5. Consult the README under SparkLaunch/.  A plugin currently exists for the Janelia SGE compute cluster.
 
 ## Architecture Notes
 This server queries the workflow manager in DVIDSparkServices to see which services are

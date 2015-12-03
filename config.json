@@ -1,5 +1,5 @@
 {
-    "web-console": "/groups/scheffer/home/plazas/development/EMWebServices/build",
+    "web-console": "/groups/scheffer/home/plazas/development/DVIDServicesConsole/dist",
     "local-WORKFLOW_DIR": "/groups/scheffer/home/plazas/development/DVIDSparkServices/workflows",
     "cluster-launcher": "sparklaunch_janelia",
     "cluster-launcher-remote-settings": {
