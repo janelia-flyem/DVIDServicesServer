@@ -21,18 +21,18 @@ func randomHex() (randomStr string) {
 
 // ExeParams contains execution params for spark jobs
 type ExeParams struct {
-	log_dir        string   // location for log files
-	remote_machine string   // location of remote machine
-	remote_user    string   // name of remote user
-	cluster_script string   // name of cluster launch script
-	num_nodes      string   // number of spark nodes to launch
-	remote_env     []string // slice of environment variables to set
+	remote_machine         string   // location of remote machine
+	remote_user            string   // name of remote user
+	cluster_script         string   // name of cluster launch script
+	num_nodes              string   // number of spark nodes to launch
+	remote_env             []string // slice of environment variables to set
+	cluster_workflowscript string   // location of workflow launch script
+	cluster_python         string   // location of cluster python
 }
 
 type sparkJob struct {
 	service_type  string // what service is being run
 	job_id        string // auto-generated job ID
-	log_loc       string // where are results stored
 	status        string // current status ("Waiting")
 	runtime       int64  // initial time stamp before completion, then time in seconds
 	message       string
@@ -65,14 +65,16 @@ func (job *sparkJob) GetID() string {
 	return job.job_id
 }
 
+// StartJob executes the spark launch script with the following
+// parameters: <num nodes> <workflow name> <job id>
+// <callback address> <spark services workflow script>
+// <python location>
 func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
-	job.log_loc = exe_params.log_dir + "/" + job.job_id
-
 	var err error
 	err = nil
 
 	if exe_params.remote_machine == "" {
-		out, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.log_loc, "http://"+web_address+"/jobstatus/"+job.job_id).Output()
+		out, err2 := exec.Command(exe_params.cluster_script, exe_params.num_nodes, job.service_type, job.job_id, "http://"+web_address+"/jobstatus/"+job.job_id, exe_params.cluster_workflowscript, exe_params.cluster_python).Output()
 		err = err2
 		if err2 != nil {
 			err = fmt.Errorf(string(out))
@@ -85,7 +87,7 @@ func (job *sparkJob) StartJob(exe_params ExeParams, web_address string) error {
 		}
 
 		argument_str += (exe_params.cluster_script)
-		argument_str += " " + exe_params.num_nodes + " " + job.service_type + " " + job.log_loc + " " + "http://" + web_address + "/jobstatus/" + job.job_id
+		argument_str += " " + exe_params.num_nodes + " " + job.service_type + " " + job.job_id + " " + "http://" + web_address + "/jobstatus/" + job.job_id + " " + exe_params.cluster_workflowscript + " " + exe_params.cluster_python
 
 		out, err2 := exec.Command("ssh", exe_params.remote_user+"@"+exe_params.remote_machine, argument_str).Output()
 		err = err2

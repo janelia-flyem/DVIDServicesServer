@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 """
-Usage: prog <num spark nodes> <service-name> <log-location> <callback>
+Usage: prog <num spark nodes> <workflow name> <job id> <callback address> <spark services workflow script> <python location>
 
 Action: Calls script that creates spark cluster and launches spark workflow
 
 Assumptions:
-    1.The environment should be properly set by the driver.
+    1. The environment should be properly set by the driver.
     2. spark_launch should be in the executable path
 """
 
@@ -24,10 +24,9 @@ try:
     # use current environment and launch with number of machines (1 for master)
     
     jt.nativeSpecification = "-jc spark-rc -pe spark-rc " + str(int(sys.argv[1])+1) + " -q hadoop2 -j y -V -o " + sys.argv[3]+".wrapper.log" + " -m b" 
-    #jt.nativeSpecification = "-jc spark-rc -pe spark-rc 2 -q hadoop2 -j y -V -o " + sys.argv[3]+".wrapper.log" + " -m b" 
-    jt.remoteCommand = "spark_launch"
+    jt.remoteCommand = "sparklaunch_janelia_int"
 
-    # provides service name, log location, and callback
+    # provides all parameters except the number of nodes
     jt.args = sys.argv[2:]
 
     # run job

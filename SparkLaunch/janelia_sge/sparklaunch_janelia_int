@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Usage: prog <service-name> <log-location> <callback>
+Usage: prog <workflow name> <job id> <callback address> <spark services workflow script> <python location>
 
 Actions:
     1.  Provides spark callback address to launching server (via server callback)
@@ -12,7 +12,18 @@ Actions:
 Assumptions: The environment should be properly set by the driver.
 """
 
-# python path must already be specified in PATH
+##### CUSTOM CONFIG (global parameters -- change as needed!!) ####
+
+# Location of spark distribution
+SPARK_HOME = "/usr/local/spark-rc"
+
+# spark configuration path (disable default python)
+CONF_DIR = "/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/conf"
+
+# directory location of log file
+LOG_DIR = "/groups/scheffer/home/plazas/sparkjoblogs"
+
+##### CUSTOM CONFIGURATION ###########
 
 import os
 import socket
@@ -30,25 +41,11 @@ json_header = {'content-type': 'app/json'}
 start = time.time()
 
 try:
-    # ***** Custom Parameters ******
-    # location of spark build (CHANGE AS NEEDED!!)
-    SPARK_HOME = "/usr/local/spark-rc"
-
-    # location of DVIDSparkServices binaries (CHANGE AS NEEDED!!)
-    DVIDSPARK_PATH = "/groups/scheffer/home/plazas/miniconda/envs/clusterbuilds/bin"
-
-    # workflow launcher path (CHANGE AS NEEDED!!)
-    WORKFLOW_LAUNCHER = "/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/workflows/launchworkflow.py"
+    # start workflow script location
+    WORKFLOW_LAUNCHER = sys.argv[4] 
     
-    # spark configuration path (disable default python) (CHANGE AS NEEDED!!)
-    CONF_DIR = "/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/conf"
-    
-    # set custom library paths (CHANGE AS NEEDED!!)
-    #os.environ["LD_LIBRARY_PATH"] = "/usr/local/gcc/lib64"
-   
-    # ***** Derived Parameters *****
     # Add directories to PATH
-    PATH_DIRS = DVIDSPARK_PATH + ":" + SPARK_HOME + "/bin:" + SPARK_HOME + "/sbin"
+    PATH_DIRS = SPARK_HOME + "/bin:" + SPARK_HOME + "/sbin"
 
     # set path
     curr_path = os.environ["PATH"]
@@ -61,12 +58,12 @@ try:
     os.environ["SPARK_CONF_DIR"] = CONF_DIR
 
     # set exact python to be used
-    os.environ["PYSPARK_PYTHON"] = DVIDSPARK_PATH + "/python"
+    os.environ["PYSPARK_PYTHON"] = sys.argv[5] 
 
     # ******** Launch Spark Cluster *******
     HOSTNAME = socket.gethostname()
 
-    master_output = subprocess.check_output(['/usr/local/spark-rc/sbin/start-master.sh'])
+    master_output = subprocess.check_output([SPARK_HOME + '/sbin/start-master.sh'])
     
     # this sets default master -- does not need to be specified on commandline
     os.environ["MASTER"] = "spark://" + HOSTNAME + ":7077"
@@ -83,31 +80,17 @@ try:
 
     requests.post(sys.argv[3], data=status_str, headers=json_header)
 
-    # grab config data
-    req = requests.get(sys.argv[3])
-    job_data = req.json()
-    config_data = job_data["config"]
-
-    # create temporary file for configuration 
-    tmpfile = tempfile.NamedTemporaryFile(delete=False)
-    tmpfile.write(json.dumps(config_data))
-    config_location = tmpfile.name
-    tmpfile.close()
-
     # wait a few seconds for the cluster to stabilise (is this necessary?)
     time.sleep(10)
 
     # call workflow and wait
     try:
-        job_output = subprocess.check_output(['/usr/local/spark-rc/bin/spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', config_location])
+        job_output = subprocess.check_output(['/usr/local/spark-rc/bin/spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', sys.argv[3]+"/config"])
     except Exception as e:
         job_output += str(sys.exc_info()[0])
         successful = False
    
     time.sleep(20)
-
-    # remove temporary file
-    os.remove(config_location)
 
     master_output = master_output + "\n" + job_output
 except Exception as e:
@@ -130,8 +113,7 @@ else:
 status_str = json.dumps(status)
 requests.post(sys.argv[3], data=status_str, headers=json_header)
 
-
 # write to file
-fout = open(sys.argv[2]+'.log', 'w')
+fout = open(LOG_DIR + "/" + sys.argv[2]+'.log', 'w')
 fout.write(master_output)
 

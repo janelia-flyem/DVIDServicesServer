@@ -20,10 +20,19 @@ const (
 	servicesPath   = "/services/"
 	servicePath    = "/service/"
 	statusPath     = "/jobstatus/"
-	sparkScript    = "spark_launch_wrapper"
-	numNodes       = "16"
 	workflowscript = "launchworkflow.py"
 )
+
+var numWorkers int
+
+// cluster path to the spark services workflow launch script
+var clusterWorkflowScript string
+
+// cluster location of python
+var clusterPython string
+
+// name of script to launch spark cluster
+var sparkScript string
 
 // contains settings for launching spark script
 var executableParams ExeParams
@@ -118,19 +127,19 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(pathlist) > 1 {
+	if len(pathlist) > 1 && pathlist[1] != "config" {
 		// call spark rest api
 		if jobinfo.spark_address == "" {
 			badRequest(w, "Error: spark driver location unknown")
 			return
 		}
 
-                defaultport := ":4040/"
-        
-                // TODO: look at history server instead when the job finishes 
-                if jobinfo.status == "Finished" || jobinfo.status == "Error" {
-                    defaultport = ":4040/"
-                }
+		defaultport := ":4040/"
+
+		// TODO: look at history server instead when the job finishes
+		if jobinfo.status == "Finished" || jobinfo.status == "Error" {
+			defaultport = ":4040/"
+		}
 
 		restapi := "http://" + jobinfo.spark_address + defaultport + strings.Join(pathlist[1:], "/")
 
@@ -152,20 +161,26 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 	if requestType == "get" {
 		// send job status
-		outputData := make(map[string]interface{})
-		outputData["job_status"] = jobinfo.status
-		outputData["job_message"] = jobinfo.message
-		outputData["sparkAddr"] = jobinfo.spark_address
-		if jobinfo.status == "Finished" || jobinfo.status == "Error" {
-			outputData["runtime"] = jobinfo.runtime
-		} else {
-			outputData["runtime"] = time.Now().Unix() - jobinfo.runtime
-		}
-		outputData["config"] = jobinfo.configuration
+		if pathlist[1] != "config" {
+			outputData := make(map[string]interface{})
+			outputData["job_status"] = jobinfo.status
+			outputData["job_message"] = jobinfo.message
+			outputData["sparkAddr"] = jobinfo.spark_address
+			if jobinfo.status == "Finished" || jobinfo.status == "Error" {
+				outputData["runtime"] = jobinfo.runtime
+			} else {
+				outputData["runtime"] = time.Now().Unix() - jobinfo.runtime
+			}
+			outputData["config"] = jobinfo.configuration
 
-		jsonbytes, _ := json.Marshal(outputData)
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, string(jsonbytes))
+			jsonbytes, _ := json.Marshal(outputData)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, string(jsonbytes))
+		} else {
+			jsonbytes, _ := json.Marshal(jobinfo.configuration)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, string(jsonbytes))
+		}
 
 		return
 	} else if requestType == "post" {
@@ -294,40 +309,63 @@ func Serve(port int, config_file string) {
 	decoder.Decode(&config_data)
 	config_handle.Close()
 
+	remote_settings := config_data["cluster-launcher-remote-settings"].(map[string]interface{})
+
 	remoteMachine := ""
-	if mach, found := config_data["remote-machine"]; found {
+	if mach, found := remote_settings["machine"]; found {
 		remoteMachine = mach.(string)
 	}
 	remoteUser := ""
-	if ruser, found := config_data["remote-user"]; found {
+	if ruser, found := remote_settings["user"]; found {
 		remoteUser = ruser.(string)
 	}
 
 	// might not be necessary if scripts are installed in
 	// system bin directories
 	remoteEnv := make([]string, 0)
-	if renv, found := config_data["remote-environment"]; found {
+	if renv, found := remote_settings["environment"]; found {
 		env_list := renv.([]interface{})
 		for _, envsing := range env_list {
 			remoteEnv = append(remoteEnv, envsing.(string))
 		}
 	}
 
-	// get log path (error if doesn't exist)
-	logDirectory := ""
-	if ldir, found := config_data["log-dir"]; found {
-		logDirectory = ldir.(string)
-	} else {
-		fmt.Println("No log file specified.  Exiting...")
-		os.Exit(-1)
-	}
-
 	// get spark workflow script locations (error if doesn't exist)
 	sparkWorkflowsLocation = ""
-	if wdir, found := config_data["workflow-dir"]; found {
+	if wdir, found := config_data["local-WORKFLOW_DIR"]; found {
 		sparkWorkflowsLocation = wdir.(string)
 	} else {
 		fmt.Println("No workflows location specfied.  Exiting...")
+		os.Exit(-1)
+	}
+
+	// size of cluster
+	numWorkers = 16
+	if clustersize, found := config_data["cluster-NUMWORKERS"]; found {
+		numWorkers = clustersize.(int)
+	}
+
+	// script to launch cluster (depends on environment)
+	if scriptname, found := config_data["cluster-launcher"]; found {
+		sparkScript = scriptname.(string)
+	} else {
+		fmt.Println("No cluster launch script specified.  Exiting...")
+		os.Exit(-1)
+	}
+
+	// pyspark python path for cluster
+	if cpy, found := config_data["cluster-DSSPYSPARK_PYTHON"]; found {
+		clusterPython = cpy.(string)
+	} else {
+		fmt.Println("No cluster python specified.  Exiting...")
+		os.Exit(-1)
+	}
+
+	// workflow path for cluster
+	if dssworkflow, found := config_data["cluster-DSSWORKFLOW_PATH"]; found {
+		clusterWorkflowScript = dssworkflow.(string)
+	} else {
+		fmt.Println("No cluster path to workflow specified.  Exiting...")
 		os.Exit(-1)
 	}
 
@@ -338,7 +376,7 @@ func Serve(port int, config_file string) {
 	fmt.Printf("Running...\n")
 
 	// initialize ExeParams
-	executableParams = ExeParams{logDirectory, remoteMachine, remoteUser, sparkScript, numNodes, remoteEnv}
+	executableParams = ExeParams{remoteMachine, remoteUser, sparkScript, string(numWorkers), remoteEnv, clusterWorkflowScript, clusterPython}
 
 	httpserver := &http.Server{Addr: webAddress}
 
