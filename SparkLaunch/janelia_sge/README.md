@@ -9,6 +9,6 @@ To run these scripts, ensure the following
 * add sparklaunch_janelia  and sparklaunch_janelia_int to the executable path
 * sparklaunch_janelia should be run on a login SGE node (like login1 or login2)
 * Specify the following parameters in sparklaunch_janelia_int
-    SPARK_HOME: location of spark distribution
-    CONF_DIR: location of spark configuration settings (defaults in the SPARK_HOME/conf are likely okay)
-    LOG_DIR: path for the log files
+    * SPARK_HOME: location of spark distribution
+    * CONF_DIR: location of spark configuration settings (defaults in the SPARK_HOME/conf are likely okay)
+    * LOG_DIR: path for the log files
