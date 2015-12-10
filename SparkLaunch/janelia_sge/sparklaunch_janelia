@@ -19,7 +19,7 @@ try:
     s = drmaa.Session()
     s.initialize()
     jt = s.createJobTemplate()
-    
+
     # (ADD CUSTOM NON-BLOCKING CALL TO LAUNCH SCRIPT ON SPARK MASTER!!)
     # use current environment and launch with number of machines (1 for master)
     

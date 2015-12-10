@@ -161,8 +161,12 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 	if requestType == "get" {
 		// send job status
-		if pathlist[1] != "config" {
-			outputData := make(map[string]interface{})
+		if len(pathlist) > 1 && pathlist[1] == "config" {
+			jsonbytes, _ := json.Marshal(jobinfo.configuration)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, string(jsonbytes))
+                } else {
+                        outputData := make(map[string]interface{})
 			outputData["job_status"] = jobinfo.status
 			outputData["job_message"] = jobinfo.message
 			outputData["sparkAddr"] = jobinfo.spark_address
@@ -176,11 +180,8 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 			jsonbytes, _ := json.Marshal(outputData)
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintf(w, string(jsonbytes))
-		} else {
-			jsonbytes, _ := json.Marshal(jobinfo.configuration)
-			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, string(jsonbytes))
-		}
+	
+                }
 
 		return
 	} else if requestType == "post" {
@@ -342,7 +343,7 @@ func Serve(port int, config_file string) {
 	// size of cluster
 	numWorkers = 16
 	if clustersize, found := config_data["cluster-NUMWORKERS"]; found {
-		numWorkers = clustersize.(int)
+		numWorkers = int(clustersize.(float64))
 	}
 
 	// script to launch cluster (depends on environment)
@@ -362,7 +363,7 @@ func Serve(port int, config_file string) {
 	}
 
 	// workflow path for cluster
-	if dssworkflow, found := config_data["cluster-DSSWORKFLOW_PATH"]; found {
+	if dssworkflow, found := config_data["cluster-DSSWORKFLOW_SCRIPT"]; found {
 		clusterWorkflowScript = dssworkflow.(string)
 	} else {
 		fmt.Println("No cluster path to workflow specified.  Exiting...")
@@ -376,7 +377,7 @@ func Serve(port int, config_file string) {
 	fmt.Printf("Running...\n")
 
 	// initialize ExeParams
-	executableParams = ExeParams{remoteMachine, remoteUser, sparkScript, string(numWorkers), remoteEnv, clusterWorkflowScript, clusterPython}
+	executableParams = ExeParams{remoteMachine, remoteUser, sparkScript, strconv.Itoa(numWorkers), remoteEnv, clusterWorkflowScript, clusterPython}
 
 	httpserver := &http.Server{Addr: webAddress}
 

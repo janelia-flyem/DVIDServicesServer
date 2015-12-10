@@ -1,12 +1,11 @@
 {
-    "web-console": "/groups/scheffer/home/plazas/development/DVIDServicesConsole/dist",
-    "local-WORKFLOW_DIR": "/groups/scheffer/home/plazas/development/DVIDSparkServices/workflows",
+    "web-console": "/groups/scheffer/home/plazas/spark_system2/DVIDServicesConsole/dist",
+    "local-WORKFLOW_DIR": "/groups/scheffer/home/plazas/spark_system2/DVIDSparkServices/workflows",
     "cluster-launcher": "sparklaunch_janelia",
     "cluster-launcher-remote-settings": {
         "machine": "login1",
         "user": "plazas",
         "environment": [
-            "PATH=/groups/scheffer/home/plazas/development/buildem_sparkcluster/bin:/groups/scheffer/home/plazas/bin:/usr/bin:/bin",
             "LD_LIBRARY_PATH=/usr/local/gcc/lib64",
             "DRMAA_LIBRARY_PATH=/sge/current/lib/lx-amd64/libdrmaa.so",
             "SGE_EXECD_PORT=6453",
@@ -16,7 +15,7 @@
             "SGE_CLUSTER_NAME=janelia"
         ]
     },
-    "cluster-DSSPYSPARK_PYTHON": "/groups/scheffer/home/plazas/miniconda/envs/clusterbuilds/bin/python",
-    "cluster-DSSWORKFLOW_SCRIPT": "/groups/scheffer/home/plazas/miniconda/envs/clusterbuilds/bin/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/workflows/launchworkflow.py",
-    "cluster-NUMWORKERS": 16
+    "cluster-DSSPYSPARK_PYTHON": "/groups/scheffer/home/plazas/miniconda/envs/services/bin/python",
+    "cluster-DSSWORKFLOW_SCRIPT": "/groups/scheffer/home/plazas/spark_system2/DVIDSparkServices/workflows/launchworkflow.py",
+    "cluster-NUMWORKERS": 2
 }

@@ -20,13 +20,13 @@ Assumptions: The environment should be properly set by the driver.
 SPARK_HOME = "/usr/local/spark-rc"
 
 # spark configuration path (disable default python)
-CONF_DIR = "/groups/scheffer/home/plazas/spark_cluster/DVIDSparkServices/conf"
+CONF_DIR = "/groups/scheffer/home/plazas/spark_system2/DVIDSparkServices/conf"
 
 # directory location of log file
 LOG_DIR = "/groups/scheffer/home/plazas/sparkjoblogs"
 
 ##### CUSTOM CONFIGURATION ###########
-
+    
 import os
 import socket
 import sys
@@ -79,7 +79,7 @@ try:
     # ******** Start Job ********
     configfile = sys.argv[3]
 
-    if has_callback:
+    if hascallback:
         # write-back callback address
         status = {}
         status["sparkAddr"] = HOSTNAME
@@ -95,7 +95,7 @@ try:
 
     # call workflow and wait
     try:
-        job_output = subprocess.check_output(['/usr/local/spark-rc/bin/spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', configfile)
+        job_output = subprocess.check_output(['/usr/local/spark-rc/bin/spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', configfile])
     except Exception as e:
         job_output += str(sys.exc_info()[0])
         successful = False
