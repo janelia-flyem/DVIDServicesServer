@@ -100,8 +100,6 @@ try:
         job_output += str(sys.exc_info()[0])
         successful = False
    
-    time.sleep(20)
-
     master_output = master_output + "\n" + job_output
 except Exception as e:
     master_output += str(sys.exc_info()[0])
