@@ -10,27 +10,40 @@ Assumptions:
     2. spark_launch should be in the executable path
 """
 
-try:
-    import sys
-    import os
-    import drmaa
+import sys
+import os
+import drmaa
 
-    # set up drmaa session
-    s = drmaa.Session()
-    s.initialize()
-    jt = s.createJobTemplate()
+# set up drmaa session
+s = drmaa.Session()
+s.initialize()
+jt = s.createJobTemplate()
 
-    # (ADD CUSTOM NON-BLOCKING CALL TO LAUNCH SCRIPT ON SPARK MASTER!!)
-    # use current environment and launch with number of machines (1 for master)
-    
-    jt.nativeSpecification = "-jc spark-rc -pe spark-rc " + str(int(sys.argv[1])+1) + " -q hadoop2 -j y -V -o " + sys.argv[3]+".wrapper.log" + " -m b" 
-    jt.remoteCommand = "sparklaunch_janelia_int"
+# (ADD CUSTOM NON-BLOCKING CALL TO LAUNCH SCRIPT ON SPARK MASTER!!)
+# use current environment and launch with number of machines (1 for master)
 
-    # provides all parameters except the number of nodes
-    jt.args = sys.argv[2:]
+num_spark_nodes = int(sys.argv[1]) + 1 # Add one for master
+job_name = sys.argv[3]
 
-    # run job
-    jobid = s.runJob(jt)
-except Exception as e:
-    print str(e)
-    exit(-1)
+qsub_args = ( " -jc spark"                   # Spark job class
+              " -pe spark {num_spark_nodes}" # Spark parallel environment
+              " -q hadoop2"                     # Use Hadoop queue
+              " -V"                             # Copy environment to nodes
+              " -j y"                           # Join output and error logs
+              " -o {job_name}.wrapper.log"      # Output log file
+             #" -m b"                           # Send email at beginning of job
+            ).format(**locals())
+
+jt.nativeSpecification = qsub_args
+jt.remoteCommand = "sparklaunch_janelia_int"
+
+# provides all parameters except the number of nodes
+jt.args = sys.argv[2:]
+
+# run job
+print "About to launch job, equivalent to the following qsub command:"
+print "qsub {qsub_args} {node_command} {cmd_args}".format( qsub_args=jt.nativeSpecification,
+                                                           node_command=jt.remoteCommand,
+                                                           cmd_args=' '.join(jt.args) )
+
+jobid = s.runJob(jt)
