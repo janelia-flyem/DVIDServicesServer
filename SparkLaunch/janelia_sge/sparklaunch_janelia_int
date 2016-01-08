@@ -20,7 +20,7 @@ Assumptions: The environment should be properly set by the driver.
 SPARK_HOME = "/usr/local/spark-current"
 
 # spark configuration path (disable default python)
-CONF_DIR = "/groups/scheffer/home/plazas/spark_system2/DVIDSparkServices/conf"
+CONF_DIR = "/groups/flyem/proj/cluster/miniconda/envs/flyem/DVIDSparkServices/conf"
 
 # directory location of log file
 LOG_DIR = "/groups/scheffer/home/plazas/sparkjoblogs"
