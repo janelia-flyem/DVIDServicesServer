@@ -14,7 +14,11 @@ Actions:
 Assumptions: The environment should be properly set by the driver.
 """
 
+import os
+
 ##### CUSTOM CONFIG (global parameters -- change as needed!!) ####
+
+USER = os.environ['USER']
 
 # Location of spark distribution
 SPARK_HOME = "/usr/local/spark-current"
@@ -23,7 +27,7 @@ SPARK_HOME = "/usr/local/spark-current"
 CONF_DIR = "/groups/flyem/proj/cluster/miniconda/envs/flyem/DVIDSparkServices/conf"
 
 # directory location of log file
-LOG_DIR = "/groups/scheffer/home/plazas/sparkjoblogs"
+LOG_DIR = os.path.expanduser('~') + "/sparkjoblogs"
 
 ##### CUSTOM CONFIGURATION ###########
     
