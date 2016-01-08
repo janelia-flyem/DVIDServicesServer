@@ -29,6 +29,9 @@ CONF_DIR = "/groups/flyem/proj/cluster/miniconda/envs/flyem/DVIDSparkServices/co
 # directory location of log file
 LOG_DIR = os.path.expanduser('~') + "/sparkjoblogs"
 
+# Global Python tempfile location (see docs for Python tempfile module)
+TMPDIR = "/scratch/" + USER
+
 ##### CUSTOM CONFIGURATION ###########
     
 import os
@@ -69,6 +72,9 @@ try:
 
     # set exact python to be used
     os.environ["PYSPARK_PYTHON"] = sys.argv[5] 
+
+    # Set TMPDIR variable, which Python respects in its tempfile module
+    os.environ["TMPDIR"] = TMPDIR
 
     # ******** Launch Spark Cluster *******
     HOSTNAME = socket.gethostname()
