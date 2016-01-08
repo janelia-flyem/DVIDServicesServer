@@ -42,9 +42,10 @@ import time
 import requests
 import tempfile
 import json
+from StringIO import StringIO
 
-master_output = ""
-successful = True
+master_output = StringIO()
+successful = False
 
 json_header = {'content-type': 'app/json'}
 start = time.time()
@@ -79,12 +80,12 @@ try:
     # ******** Launch Spark Cluster *******
     HOSTNAME = socket.gethostname()
 
-    master_output = subprocess.check_output([SPARK_HOME + '/sbin/start-master.sh'])
+    master_output.write( subprocess.check_output([SPARK_HOME + '/sbin/start-master.sh']) + "\n" )
     
     # this sets default master -- does not need to be specified on commandline
     os.environ["MASTER"] = "spark://" + HOSTNAME + ":7077"
 
-    master_output = master_output + "\n" + os.environ["MASTER"]
+    master_output.write( os.environ["MASTER"] + "\n" )
 
     # ******** Start Job ********
     configfile = sys.argv[3]
@@ -106,34 +107,38 @@ try:
     # call workflow and wait
     try:
         job_output = subprocess.check_output([SPARK_HOME + '/bin/spark-submit', WORKFLOW_LAUNCHER, sys.argv[1], '-c', configfile])
-    except Exception as e:
-        job_output += str(sys.exc_info()[0])
-        successful = False
-   
-    master_output = master_output + "\n" + job_output
-except Exception as e:
-    master_output += str(sys.exc_info()[0])
-    successful = False
+        master_output.write( job_output + "\n" )
+        successful = True
+    finally:
+        time.sleep(20)
 
-# record time
-finish = time.time()
-master_output += "\n" + "Total Time: " + str(finish-start)
-
-# write status and message
-status = {}
-status["sparkAddr"] = ""
-if not successful:
-    status["job_status"] = "Error"
-    status["job_message"] = master_output
-else:
-    status["job_status"] = "Finished"
-    status["job_message"] = master_output
-status_str = json.dumps(status)
-
-if hascallback:
-    requests.post(sys.argv[3], data=status_str, headers=json_header)
-
-# write to file
-fout = open(LOG_DIR + "/" + sys.argv[2]+'.log', 'w')
-fout.write(master_output)
-
+except subprocess.CalledProcessError as ex:
+    import traceback
+    traceback.print_exc(file=master_output)
+    master_output.write(ex.output)    
+    master_output.write("Subprocess return code: {}".format(ex.returncode) )    
+except:
+    import traceback
+    traceback.print_exc(file=master_output)
+finally:
+    # record time
+    finish = time.time()
+    master_output.write( "\n" + "Total Time: " + str(finish-start) + "\n" )
+    
+    # write status and message
+    status = {}
+    status["sparkAddr"] = ""
+    if not successful:
+        status["job_status"] = "Error"
+    else:
+        status["job_status"] = "Finished"
+    status["job_message"] = master_output.getvalue()
+    status_str = json.dumps(status)
+    
+    if hascallback:
+        requests.post(sys.argv[3], data=status_str, headers=json_header)
+    
+    # write to file
+    with open(LOG_DIR + "/" + sys.argv[2]+'.log', 'w') as fout:
+        fout.write(master_output.getvalue() + "\n")
+        fout.write( "Launch script done: {}\n".format( {True: "successful", False: "UNSUCCESSFUL"}[successful] ) )
