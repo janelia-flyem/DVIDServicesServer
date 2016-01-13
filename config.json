@@ -1,6 +1,6 @@
 {
-    "web-console": "/groups/scheffer/home/plazas/spark_system2/DVIDServicesConsole/dist",
-    "local-WORKFLOW_DIR": "/groups/scheffer/home/plazas/spark_system2/DVIDSparkServices/workflows",
+    "web-console": "/groups/scheffer/home/plazas/spark_system3/DVIDServicesConsole/dist",
+    "local-WORKFLOW_DIR": "/groups/scheffer/home/plazas/spark_system3/DVIDSparkServices/workflows",
     "cluster-launcher": "sparklaunch_janelia",
     "cluster-launcher-remote-settings": {
         "machine": "login1",
@@ -16,6 +16,6 @@
         ]
     },
     "cluster-DSSPYSPARK_PYTHON": "/groups/scheffer/home/plazas/miniconda/envs/services/bin/python",
-    "cluster-DSSWORKFLOW_SCRIPT": "/groups/scheffer/home/plazas/spark_system2/DVIDSparkServices/workflows/launchworkflow.py",
+    "cluster-DSSWORKFLOW_SCRIPT": "/groups/scheffer/home/plazas/spark_system3/DVIDSparkServices/workflows/launchworkflow.py",
     "cluster-NUMWORKERS": 2
 }

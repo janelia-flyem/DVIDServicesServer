@@ -164,7 +164,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		if len(pathlist) > 1 && pathlist[1] == "config" {
 			jsonbytes, _ := json.Marshal(jobinfo.configuration)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, string(jsonbytes))
+			fmt.Fprint(w, string(jsonbytes))
                 } else {
                         outputData := make(map[string]interface{})
 			outputData["job_status"] = jobinfo.status
@@ -179,7 +179,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 			jsonbytes, _ := json.Marshal(outputData)
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprintf(w, string(jsonbytes))
+			fmt.Fprint(w, string(jsonbytes))
 	
                 }
 
