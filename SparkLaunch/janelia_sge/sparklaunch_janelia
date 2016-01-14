@@ -10,7 +10,7 @@ Assumptions:
     2. spark_launch should be in the executable path
 """
 
-USE_DRMAA = False
+USE_DRMAA = True
 
 import sys
 import os
@@ -21,7 +21,8 @@ import os
 num_spark_nodes = int(sys.argv[1]) + 1 # Add one for master
 job_name = sys.argv[3]
 
-qsub_args = ( " -jc spark"                   # Spark job class
+qsub_args = ( "-w n"                         # SGE validation level (none, which is the qsub default)
+              " -jc spark"                   # Spark job class
               " -pe spark {num_spark_nodes}" # Spark parallel environment
               " -q hadoop2"                  # Use Hadoop queue
               " -V"                          # Copy environment to nodes
