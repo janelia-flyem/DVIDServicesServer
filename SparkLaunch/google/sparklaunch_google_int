@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+
+"""
+Usage: prog <num spark nodes> <workflow name> <job id> <callback address> <spark services workflow script> <python location>
+
+Actions:
+    1. Launches cluster
+    2. Provides spark callback address
+    3. Initialized spark cluster
+    4. Run job
+    5. Provide output
+    6. Delete cluster
+Assumptions:
+    1. bdutil should be in the executable path
+    2. sparklaunch_google_int should be in the executable path
+"""
+
+import sys
+import subprocess
+import requests
+import time
+from StringIO import StringIO
+import json
+
+#### CUSTOM CONFIG (modify location and file as needed) #####
+
+# location of bdutil custom configurartion
+CUSTOMENV_LOC=/root/custombdutil.env
+    
+# local hostname for master
+MASTER_ADDR = "master-" + sys.argv[3]
+
+####
+
+json_header = {'content-type': 'app/json'}
+successful = False
+master_output = StringIO()
+started = False
+start = time.time()
+
+# if no callback then run as service
+hascallback = True
+if not sys.argv[4].startswith("http"):
+    hascallback = False
+
+try:
+    # launch cluster
+    master_output.write(subprocess.check_output(["bdutil", "-f", "-e", CUSTOMENV_LOC, "-n", sys.argv[1], "-P", "master-" + MASTER_ADDR, "deploy"]))
+    started = True    
+
+    # start job callback    
+    configfile = sys.argv[4]
+    if hascallback:
+        # write-back callback address
+        status = {}
+        status["sparkAddr"] = MASTER_ADDR
+        status["job_status"] = "Running"
+        status_str = json.dumps(status)
+        requests.post(sys.argv[4], data=status_str, headers=json_header)
+        configfile = configfile + "/config"
+
+    # pipe in command through temporary file
+    SPARK_COMMAND = "spark-submit " + sys.argv[5] + " " + sys.argv[2] + " -c " + configfile 
+    import tempfile
+    tmpf = tempfile.TemporaryFile()
+    tmpf.write(SPARK_COMMAND)
+    tmpf.seek(0)
+
+    master_output.write(subprocess.check_output(["bdutil", "shell"], stdin=tmpf))
+    successful = True
+    tmpf.close()
+
+except subprocess.CalledProcessError as ex:
+    # write errors back to log
+    import traceback
+    traceback.print_exc(file=master_output)
+    master_output.write(ex.output)
+    master_output.write("Subprocess return code: {}".format(ex.returncode) )    
+
+finally:
+    # delete cluster if created
+    if started:
+        subprocess.check_output(["bdutil", "-f", "delete"])    
+
+    # record time
+    finish = time.time()
+    master_output.write( "\n" + "Total Time: " + str(finish-start) + "\n" )
+
+    # write status and message
+    status = {}
+    status["sparkAddr"] = ""
+    if not successful:
+        status["job_status"] = "Error"
+    else:
+        status["job_status"] = "Finished"
+    status["job_message"] = master_output.getvalue()
+    status_str = json.dumps(status)
+    
+    if hascallback:
+        requests.post(sys.argv[4], data=status_str, headers=json_header)
+ 
+

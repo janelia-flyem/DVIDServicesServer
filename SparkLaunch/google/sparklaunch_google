@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+"""
+Usage: prog <num spark nodes> <workflow name> <job id> <callback address> <spark services workflow script> <python location>
+
+Action: Wrapper script that launches spark workflow
+
+Assumptions:
+    1. bdutil should be in the executable path
+    2. sparklaunch_google should be in the executable path
+    3. sparklaunch_google_int should be in the executable path
+"""
+
+import os
+import string
+
+# run non-blocking for now
+os.system("sparklaunch_google_int " + string.join(sys.argv[1:]) + ' &')
+
