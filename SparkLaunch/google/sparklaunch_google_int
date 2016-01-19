@@ -25,7 +25,7 @@ import json
 #### CUSTOM CONFIG (modify location and file as needed) #####
 
 # location of bdutil custom configurartion
-CUSTOMENV_LOC=/root/custombdutil.env
+CUSTOMENV_LOC=/usr/local/custombdutil.env
     
 # local hostname for master
 MASTER_ADDR = "master-" + sys.argv[3]

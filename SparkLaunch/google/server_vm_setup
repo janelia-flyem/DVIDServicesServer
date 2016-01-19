@@ -1,0 +1,307 @@
+#!/bin/bash
+
+# Notes:
+# 1. run as root
+# 2. open port 80 (dvidspark server) and port 8000 (dvid)
+
+####### install dvid ##########
+echo "Installing dvid"
+
+export GOROOT=/usr/local/go
+export GOPATH=/usr/local/gopath
+export DVIDSRC=$GOPATH/src/github.com/janelia-flyem/dvid
+export BUILDEM_DIR=/usr/local/buildem
+export LD_LIBRARY_PATH=$BUILDEM_DIR/lib:$LD_LIBRARY_PATH
+export PATH=/usr/local/go/bin:$BUILDEM_DIR/bin:$PATH
+
+cd /usr/local
+apt-get -y update && apt-get install -y git make g++ cmake wget mercurial zip
+wget https://storage.googleapis.com/golang/go1.5.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.5.linux-amd64.tar.gz
+wget https://github.com/janelia-flyem/dvid-console/releases/download/v1.11.0/dvid-console-1.11.0.tar.gz
+tar -C /usr/local -xzf dvid-console-1.11.0.tar.gz
+mkdir /usr/local/gopath
+mkdir -p $DVIDSRC
+cd $DVIDSRC
+cd ..
+git clone https://github.com/stephenplaza/dvid.git
+cd $DVIDSRC; mkdir build; cd build                                                                                 
+ 
+cmake -DDVID_BACKEND="basholeveldb;gbucket" -DBUILDEM_DIR=$BUILDEM_DIR ..
+make; cmake -D BUILDEM_DIR=$BUILDEM_DIR ..
+make dvid
+
+# write out config file (!! must make firewall rule allowing traffic on port 8000)
+configtoml='
+[server]
+httpAddress = "0.0.0.0:8000"
+rpcAddress = "0.0.0.0:8001"
+webClient = "/usr/local/dvid-console"
+instance_id_gen = "sequential"
+instance_id_start = 100  # new ids start at least from this.
+[logging]
+logfile = "/usr/local/dvid.log"
+max_log_size = 500 # MB
+max_log_age = 30   # days
+[store]
+# if no store.metadata is provided, it defaults to store.mutable configuration
+   [store.mutable]
+   engine = "gbucket"
+   bucket = "dviddata2"'
+echo "$configtoml" > /usr/local/dvid.toml
+
+# write dvid startup shell
+dvidshell='#! /bin/sh 
+sleep 30
+LD_LIBRARY_PATH=/usr/local/buildem/lib nohup /usr/local/buildem/bin/dvid serve /usr/local/dvid.toml &> /dev/null'
+
+echo "$dvidshell" > /usr/local/dvid.sh
+chmod +x /usr/local/dvid.sh
+
+# write dvid startup file and configure to start dvid on boot
+dvidboot='#! /bin/sh
+### BEGIN INIT INFO
+# Provides:   dvid 
+# Required-Start:    $all
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: DVID Server 
+# Description:       This runs DVID startup and shutdown 
+### END INIT INFO
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+DESC="DVID server at port 8000"
+NAME="dvid"
+# If we are running under upstart, let the upstart config file handle things.
+# Debian 7 and newer have a near-one-liner function to detect this...
+if type init_is_upstart >/dev/null 2>&1; then
+    # ... which we can use if present.
+    init_is_upstart && exit 0
+else
+    # Otherwise, directly include the core line of Debian 7s version.
+    # Authorship credit: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=661109
+    if [ -x /sbin/initctl ] && /sbin/initctl version | /bin/grep -q upstart; then
+        exit 0
+    fi
+fi
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    /usr/local/dvid.sh & 
+}
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    kill -s KILL `ps -u root | grep dvid | awk "{print $1}"`
+}
+
+case "$1" in
+    start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        do_start
+        case "$?" in
+            0) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        *) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    stop)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop
+        case "$?" in
+            0) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        *) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME start" >&2
+        exit 3
+        ;;
+esac
+:'
+echo "$dvidboot" > /etc/init.d/dvid
+chmod +x /etc/init.d/dvid
+
+# add dvid to startup
+update-rc.d dvid defaults
+
+# start dvid the first time
+nohup dvid serve /usr/local/dvid.toml &> /dev/null &
+
+############ END INSTALL DVID ####################
+
+
+############ INSTALL BDUTIL #######################
+echo "Installing bdutil"
+
+cd /usr/local
+wget https://github.com/GoogleCloudPlatform/bdutil/archive/1.3.3.tar.gz
+tar zxvf 1.3.3.tar.gz
+ln -s bdutil-1.3.3/bdutil bin/bdutil
+
+############ END INSTALL BDUTIL #########################
+
+############# INSTALL DVIDSparkServices ################
+echo "Installing DVIDSparkServices"
+
+# install conda to root and retrieve spark services
+apt-get install -y bzip2
+wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh
+bash Miniconda-latest-Linux-x86_64.sh -p /usr/local/miniconda2 -bf
+
+/usr/local/miniconda2/bin/conda create -y -n services -c flyem dvidsparkservices
+export PATH=/usr/local/miniconda2/envs/services/bin:$PATH
+
+# clone spark services and setup install
+cd /usr/local
+git clone https://github.com/janelia-flyem/DVIDSparkServices.git
+cd DVIDSparkServices
+python setup.py build
+python setup.py install
+
+# add bin and lib to path ?!
+echo "PATH=/usr/local/miniconda2/envs/services/bin:$PATH" >> /etc/profile
+echo "LD_LIBRARY_PATH=/usr/local/miniconda2/envs/services/lib:$LD_LIBRARY_PATH" >> /etc/profile
+
+############ END INSTALL DVIDSparkServices #####################
+
+############ INSTALL DVIDServicesServer #####################
+echo "Installing DVID Services Server"
+
+cd /usr/local
+
+# install server
+go get github.com/janelia-flyem/DVIDServicesServer
+
+# add server scripts and bdutil env to correct paths
+ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_google /usr/local/bin/sparklaunch_google
+ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_google_int /usr/local/bin/sparklaunch_google_int
+ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/custombdutil.env /usr/local/custombdutil.env
+
+# install console
+git clone https://github.com/janelia-flyem/DVIDServicesConsole.git
+
+# copy config file to root
+serviceconfig='
+{
+    "web-console": "/usr/local/DVIDServicesConsole/dist",
+    "local-WORKFLOW_DIR": "/usr/local/DVIDSparkServices/workflows",
+    "cluster-launcher-remote-settings" : {},
+    "cluster-launcher": "sparklaunch_google",
+    "cluster-DSSPYSPARK_PYTHON": "/usr/local/miniconda2/envs/services/bin/python",
+    "cluster-DSSWORKFLOW_SCRIPT": "/usr/local/DVIDSparkServices/workflows/launchworkflow.py",
+    "cluster-NUMWORKERS": 2
+}'
+echo "$serviceconfig" > /usr/local/config.json
+
+
+# write server startup shell
+servicesshell='#! /bin/sh 
+sleep 30
+PATH=/usr/local/miniconda2/envs/services/bin:$PATH /usr/local/gopath/bin/DVIDServicesServer -port 80 /usr/local/config.json &> /dev/null'
+
+echo "$servicesshell" > /usr/local/dvidservicesserver.sh
+chmod +x /usr/local/dvidservicesserver.sh
+
+# write server startup file and configure to start server on boot
+servicesboot='#! /bin/sh
+### BEGIN INIT INFO
+# Provides:   dvidservicesserver 
+# Required-Start:    $all
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: DVIDServicesServer 
+# Description:       This runs DVIDServicesServer startup and shutdown 
+### END INIT INFO
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+DESC="DVIDServicesServer server at port 80"
+NAME="dvidservicesserver"
+# If we are running under upstart, let the upstart config file handle things.
+# Debian 7 and newer have a near-one-liner function to detect this...
+if type init_is_upstart >/dev/null 2>&1; then
+    # ... which we can use if present.
+    init_is_upstart && exit 0
+else
+    # Otherwise, directly include the core line of Debian 7s version.
+    # Authorship credit: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=661109
+    if [ -x /sbin/initctl ] && /sbin/initctl version | /bin/grep -q upstart; then
+        exit 0
+    fi
+fi
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    /usr/local/dvidservicesserver.sh & 
+}
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    kill -s KILL `ps -u root | grep DVIDSer | awk "{print $1}"`
+}
+
+case "$1" in
+    start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        do_start
+        case "$?" in
+            0) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        *) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    stop)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop
+        case "$?" in
+            0) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        *) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+    *)
+        echo "Usage: $SCRIPTNAME start" >&2
+        exit 3
+        ;;
+esac
+:'
+echo "$servicesboot" > /etc/init.d/dvidservicesserver
+chmod +x /etc/init.d/dvidservicesserver
+
+# add dvidservicesserver to startup
+update-rc.d dvidservicesserver defaults
+
+############ END INSTALL DVIDServicesServer ######################
+
+############ INSTALL gcloud-python (should be in conda for dvidsparkservices) ################
+
+echo "Installing gcloud-python"
+
+cd /usr/local
+easy_install httplib2
+easy_install oauth2client
+easy_install protobuf
+apt-get -y install libffi-dev
+apt-get -y install libssl-dev
+easy_install pyOpenSSL
+easy_install six
+easy_install googleapis-common-protos
+git clone https://github.com/GoogleCloudPlatform/gcloud-python.git
+cd gcloud-python/
+python setup.py build
+python setup.py install
+
+
+########### END INSTALL gcloud-python ##################
+
