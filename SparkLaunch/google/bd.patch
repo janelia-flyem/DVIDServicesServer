@@ -1,0 +1,9 @@
+374,381d373
+<   if [[ ${EUID} -eq 0 ]]; then
+<     msg='Are you sure you want to run the command as root? (y/n)'
+<     read -p "${msg}" PROMPT_RESPONSE
+<     if [[ ${PROMPT_RESPONSE} != 'y' ]]; then
+<       logerror "Aborting command '$1', exiting..."
+<       exit 1
+<     fi
+<   fi
