@@ -143,7 +143,23 @@ echo "Installing bdutil"
 cd /usr/local
 wget https://github.com/GoogleCloudPlatform/bdutil/archive/1.3.3.tar.gz
 tar zxvf 1.3.3.tar.gz
-ln -s bdutil-1.3.3/bdutil bin/bdutil
+
+# apply small patch to get rid of root check
+bdpatch='374,381d373
+<   if [[ ${EUID} -eq 0 ]]; then
+<     msg='Are you sure you want to run the command as root? (y/n)'
+<     read -p "${msg}" PROMPT_RESPONSE
+<     if [[ ${PROMPT_RESPONSE} != 'y' ]]; then
+<       logerror "Aborting command '$1', exiting..."
+<       exit 1
+<     fi
+<   fi'
+
+echo "$bdpatch" > /usr/local/bd.patch
+patch /usr/local/bdutil-1.3.3/bdutil /usr/local/bd.patch
+
+
+ln -s /usr/local/bdutil-1.3.3/bdutil /usr/local/bin/bdutil
 
 ############ END INSTALL BDUTIL #########################
 
@@ -165,9 +181,10 @@ cd DVIDSparkServices
 python setup.py build
 python setup.py install
 
-# add bin and lib to path ?!
-echo "PATH=/usr/local/miniconda2/envs/services/bin:$PATH" >> /etc/profile
-echo "LD_LIBRARY_PATH=/usr/local/miniconda2/envs/services/lib:$LD_LIBRARY_PATH" >> /etc/profile
+# add bin and lib to root bash path 
+echo "export PYSPARK_PYTHON=/usr/local/miniconda2/envs/services/bin/python" >> /root/.bashrc
+#echo "PATH=/usr/local/miniconda2/envs/services/bin:$PATH" >> /root/.bashrc
+#echo "LD_LIBRARY_PATH=/usr/local/miniconda2/envs/services/lib:$LD_LIBRARY_PATH" >> /etc/profile
 
 ############ END INSTALL DVIDSparkServices #####################
 
@@ -181,6 +198,7 @@ go get github.com/janelia-flyem/DVIDServicesServer
 
 # add server scripts and bdutil env to correct paths
 ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_google /usr/local/bin/sparklaunch_google
+ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_wrapper /usr/local/bin/sparklaunch_wrapper_
 ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_google_int /usr/local/bin/sparklaunch_google_int
 ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/custombdutil.env /usr/local/custombdutil.env
 
@@ -303,5 +321,14 @@ python setup.py build
 python setup.py install
 
 
+
 ########### END INSTALL gcloud-python ##################
+
+########### SET ACCESS FOR ALL #####################
+
+# provide read access to entire miniconda directory so all users can access it
+chmod -R a+r /usr/local/miniconda2/envs/services
+
+########### END SET ACCESS FOR ALL #####################
+
 

@@ -13,7 +13,8 @@ Assumptions:
 
 import os
 import string
+import sys
 
 # run non-blocking for now
-os.system("sparklaunch_google_int " + string.join(sys.argv[1:]) + ' &')
+os.system("sparklaunch_wrapper " + string.join(sys.argv[1:]))
 

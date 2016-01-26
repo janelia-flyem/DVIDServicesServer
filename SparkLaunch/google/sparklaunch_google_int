@@ -25,10 +25,10 @@ import json
 #### CUSTOM CONFIG (modify location and file as needed) #####
 
 # location of bdutil custom configurartion
-CUSTOMENV_LOC=/usr/local/custombdutil.env
+CUSTOMENV_LOC="/usr/local/custombdutil.env,spark_env.sh"
     
 # local hostname for master
-MASTER_ADDR = "master-" + sys.argv[3]
+CLUSTERNAME= "dvidservices"
 
 ####
 
@@ -44,48 +44,53 @@ if not sys.argv[4].startswith("http"):
     hascallback = False
 
 try:
-    # launch cluster
-    master_output.write(subprocess.check_output(["bdutil", "-f", "-e", CUSTOMENV_LOC, "-n", sys.argv[1], "-P", "master-" + MASTER_ADDR, "deploy"]))
-    started = True    
-
     # start job callback    
     configfile = sys.argv[4]
     if hascallback:
         # write-back callback address
         status = {}
-        status["sparkAddr"] = MASTER_ADDR
+        status["sparkAddr"] = CLUSTERNAME + "-m" 
         status["job_status"] = "Running"
         status_str = json.dumps(status)
         requests.post(sys.argv[4], data=status_str, headers=json_header)
-        configfile = configfile + "/config"
+    configfile = configfile + "/config"
+
+    master_output.write(subprocess.check_output(["bdutil", "-f", "-e", CUSTOMENV_LOC, "-n", sys.argv[1], "-P", CLUSTERNAME, "deploy"]))
+    started = True    
+
+    if hascallback:
+        # write-back callback address
+        status = {}
+        status["sparkAddr"] = CLUSTERNAME + "-m" 
+        status["job_status"] = "Running"
+        status["job_message"] = master_output.getvalue()
+        status_str = json.dumps(status)
+        requests.post(sys.argv[4], data=status_str, headers=json_header)
+
 
     # pipe in command through temporary file
     SPARK_COMMAND = "spark-submit " + sys.argv[5] + " " + sys.argv[2] + " -c " + configfile 
+ 
     import tempfile
     tmpf = tempfile.TemporaryFile()
     tmpf.write(SPARK_COMMAND)
     tmpf.seek(0)
-
-    master_output.write(subprocess.check_output(["bdutil", "shell"], stdin=tmpf))
+    master_output.write(subprocess.check_output(["bdutil", "-f", "-e", CUSTOMENV_LOC, "-P", CLUSTERNAME, "shell"], stdin=tmpf))
     successful = True
     tmpf.close()
-
 except subprocess.CalledProcessError as ex:
     # write errors back to log
     import traceback
     traceback.print_exc(file=master_output)
     master_output.write(ex.output)
     master_output.write("Subprocess return code: {}".format(ex.returncode) )    
-
 finally:
     # delete cluster if created
     if started:
-        subprocess.check_output(["bdutil", "-f", "delete"])    
-
+        subprocess.check_output(["bdutil", "-e", CUSTOMENV_LOC, "-P", CLUSTERNAME, "-f", "delete"])    
     # record time
     finish = time.time()
     master_output.write( "\n" + "Total Time: " + str(finish-start) + "\n" )
-
     # write status and message
     status = {}
     status["sparkAddr"] = ""
@@ -99,4 +104,3 @@ finally:
     if hascallback:
         requests.post(sys.argv[4], data=status_str, headers=json_header)
  
-
