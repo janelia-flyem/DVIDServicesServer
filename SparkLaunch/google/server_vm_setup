@@ -24,7 +24,7 @@ mkdir /usr/local/gopath
 mkdir -p $DVIDSRC
 cd $DVIDSRC
 cd ..
-git clone https://github.com/stephenplaza/dvid.git
+git clone https://github.com/janelia-flyem/dvid.git
 cd $DVIDSRC; mkdir build; cd build                                                                                 
  
 cmake -DDVID_BACKEND="basholeveldb;gbucket" -DBUILDEM_DIR=$BUILDEM_DIR ..
