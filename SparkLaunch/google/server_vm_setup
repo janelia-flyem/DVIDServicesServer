@@ -171,7 +171,7 @@ go get github.com/janelia-flyem/DVIDServicesServer
 
 # add server scripts and bdutil env to correct paths
 ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_google /usr/local/bin/sparklaunch_google
-ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_wrapper /usr/local/bin/sparklaunch_wrapper_
+ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_wrapper /usr/local/bin/sparklaunch_wrapper
 ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/sparklaunch_google_int /usr/local/bin/sparklaunch_google_int
 ln -s /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/custombdutil.env /usr/local/custombdutil.env
 
@@ -195,7 +195,7 @@ echo "$serviceconfig" > /usr/local/config.json
 # write server startup shell
 servicesshell='#! /bin/sh 
 sleep 30
-PATH=/usr/local/miniconda2/envs/services/bin:$PATH /usr/local/gopath/bin/DVIDServicesServer -port 80 /usr/local/config.json &> /dev/null'
+PATH=/usr/local/miniconda2/envs/services/bin:/usr/local/bin:$PATH nohup /usr/local/gopath/bin/DVIDServicesServer -port 80 /usr/local/config.json &> /dev/null'
 
 echo "$servicesshell" > /usr/local/dvidservicesserver.sh
 chmod +x /usr/local/dvidservicesserver.sh
