@@ -16,11 +16,13 @@ To run these scripts, ensure the following:
 * specify the location of custombdutil.env in sparklaunch_google_int
 * create a custom image with DVIDSparkServices installed and modify the custom environment as appropriate
 
+The server_vm_setup script can be used to initialize a VM with many of these parameters set (see below).
+
 ## Starting VM Instances
 
 ### Server
 
-The user should install the DVIDServicesServer and supporting packages by executing the commands in server_vm_setup as root.  This script should run correctly Debian and Ubuntu distributions.  In addition, to installing the server, this commmand also automatically launches the service server on boot and also starts a local DVID point to google bucket storage on port 8000.  The user should ensure that the VM is configured to allow traffic on ports 80 and 8000.
+The user should install the DVIDServicesServer and supporting packages by executing the commands in server_vm_setup as root.  This script should run correctly Debian and Ubuntu distributions.  In addition, to installing the server, this commmand also automatically launches the service server on boot and also starts a local DVID point to google bucket storage on port 8000.  The user should ensure that the VM is configured to allow traffic on ports 80 and 8000.  The user will still need to modify the parameters in custombdutil.env as appropriate.
 ### Workers
 
 The server_vm_setup script can be used to create the workers as well.  It is recommended that one creates a custom image with this script and then point to this image in the custombdutil.env.  The script embeds a configuration for dvid.  This should be modified to point to the google bucket that will store dvid data.
