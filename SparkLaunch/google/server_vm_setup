@@ -51,7 +51,7 @@ max_log_age = 30   # days
 # if no store.metadata is provided, it defaults to store.mutable configuration
    [store.mutable]
    engine = "gbucket"
-   bucket = "dviddata2"'
+   bucket = "dvidrepos-flyem"'
 echo "$configtoml" > /usr/local/dvid.toml
 
 # write dvid startup shell
