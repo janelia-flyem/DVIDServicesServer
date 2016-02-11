@@ -1,0 +1,18 @@
+35a36
+>   "runtime"
+986c987
+<   for _, operation := range buffer.ops {
+---
+>   for itnum, operation := range buffer.ops {
+988c989
+<       go func(opdata dbOp) {
+---
+>       go func(opdata dbOp, currnum int) {
+1014a1016,1018
+>           if currnum%MAXCONNECTIONS == 0 {
+>               runtime.GC()
+>           }
+1017c1021
+<       }(operation)
+---
+>       }(operation, itnum)

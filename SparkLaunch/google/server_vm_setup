@@ -25,6 +25,10 @@ mkdir -p $DVIDSRC
 cd $DVIDSRC
 cd ..
 git clone https://github.com/janelia-flyem/dvid.git
+
+# apply small patch that forces GC in google bucket driver -- it is a bit of a hack for now
+patch $DVIDSRC/storage/gbucket/gbucket.go /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/gbucket.patch
+
 cd $DVIDSRC; mkdir build; cd build                                                                                 
  
 cmake -DDVID_BACKEND="basholeveldb;gbucket" -DBUILDEM_DIR=$BUILDEM_DIR ..
@@ -187,7 +191,7 @@ serviceconfig='
     "cluster-launcher": "sparklaunch_google",
     "cluster-DSSPYSPARK_PYTHON": "/usr/local/miniconda2/envs/services/bin/python",
     "cluster-DSSWORKFLOW_SCRIPT": "/usr/local/DVIDSparkServices/workflows/launchworkflow.py",
-    "cluster-NUMWORKERS": 2
+    "cluster-NUMWORKERS": 16
 }'
 echo "$serviceconfig" > /usr/local/config.json
 
