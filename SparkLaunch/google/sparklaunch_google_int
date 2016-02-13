@@ -75,7 +75,7 @@ try:
     tmpf = tempfile.TemporaryFile()
     tmpf.write(SPARK_COMMAND)
     tmpf.seek(0)
-    master_output.write(subprocess.check_output(["bdutil", "-f", "-e", CUSTOMENV_LOC, "-P", CLUSTERNAME, "shell"], stdin=tmpf))
+    master_output.write(subprocess.check_output(["bdutil", "-f", "-e", CUSTOMENV_LOC, "-n", sys.argv[1], "-P", CLUSTERNAME, "shell"], stdin=tmpf))
     successful = True
     tmpf.close()
 except subprocess.CalledProcessError as ex:
@@ -87,7 +87,7 @@ except subprocess.CalledProcessError as ex:
 finally:
     # delete cluster if created
     if started:
-        subprocess.check_output(["bdutil", "-e", CUSTOMENV_LOC, "-P", CLUSTERNAME, "-f", "delete"])    
+        subprocess.check_output(["bdutil", "-e", CUSTOMENV_LOC, "-n", sys.argv[1], "-P", CLUSTERNAME, "-f", "delete"])    
     # record time
     finish = time.time()
     master_output.write( "\n" + "Total Time: " + str(finish-start) + "\n" )

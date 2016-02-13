@@ -191,7 +191,7 @@ serviceconfig='
     "cluster-launcher": "sparklaunch_google",
     "cluster-DSSPYSPARK_PYTHON": "/usr/local/miniconda2/envs/services/bin/python",
     "cluster-DSSWORKFLOW_SCRIPT": "/usr/local/DVIDSparkServices/workflows/launchworkflow.py",
-    "cluster-NUMWORKERS": 16
+    "cluster-NUMWORKERS": 8
 }'
 echo "$serviceconfig" > /usr/local/config.json
 
