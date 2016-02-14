@@ -27,7 +27,7 @@ cd ..
 git clone https://github.com/janelia-flyem/dvid.git
 
 # apply small patch that forces GC in google bucket driver -- it is a bit of a hack for now
-patch $DVIDSRC/storage/gbucket/gbucket.go /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/gbucket.patch
+patch -l $DVIDSRC/storage/gbucket/gbucket.go /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/gbucket.patch
 
 cd $DVIDSRC; mkdir build; cd build                                                                                 
  
