@@ -9,7 +9,7 @@
 ---
 >       go func(opdata dbOp, currnum int) {
 1014a1016,1018
->           if currnum%MAXCONNECTIONS == 0 {
+>           if currnum%MAXCONNECTIONS == (MAXCONNECTIONS-1) {
 >               runtime.GC()
 >           }
 1017c1021
