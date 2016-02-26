@@ -28,7 +28,7 @@ import json
 CUSTOMENV_LOC="/usr/local/custombdutil.env,spark_env.sh"
     
 # local hostname for master
-CLUSTERNAME= "dvidservices"
+CLUSTERNAME= "job" + sys.argv[3][-5:]
 
 ####
 
