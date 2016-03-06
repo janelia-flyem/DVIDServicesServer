@@ -48,7 +48,7 @@ echo "$serviceconfig" > /usr/local/config.json
 
 # write server startup shell
 servicesshell='#! /bin/sh 
-sleep 30
+sleep 100
 PATH=/usr/local/miniconda2/envs/services/bin:/usr/local/bin:$PATH nohup /usr/local/gopath/bin/DVIDServicesServer -port 80 /usr/local/config.json &> /dev/null'
 
 echo "$servicesshell" > /usr/local/dvidservicesserver.sh
@@ -149,7 +149,7 @@ cd ..
 git clone https://github.com/janelia-flyem/dvid.git
 
 # apply small patch that forces GC in google bucket driver -- it is a bit of a hack for now
-patch -l $DVIDSRC/storage/gbucket/gbucket.go /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/gbucket.patch
+#patch -l $DVIDSRC/storage/gbucket/gbucket.go /usr/local/gopath/src/github.com/janelia-flyem/DVIDServicesServer/SparkLaunch/google/gbucket.patch
 
 cd $DVIDSRC; mkdir build; cd build                                                                                 
  
@@ -323,6 +323,10 @@ python setup.py install
 
 
 ########### END INSTALL gcloud-python ##################
+
+######## MISC Install ##########
+
+apt-get -y install openjdk-7-jdk
 
 ########### SET ACCESS FOR ALL #####################
 
