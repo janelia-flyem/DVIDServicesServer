@@ -157,6 +157,14 @@ cmake -DDVID_BACKEND="basholeveldb;gbucket" -DBUILDEM_DIR=$BUILDEM_DIR ..
 make; cmake -D BUILDEM_DIR=$BUILDEM_DIR ..
 make dvid
 
+# !! temporary reset of gcloud library
+cd $GOPATH/src/google.golang.org/cloud
+git reset --hard 8bc2457bef5a52c10b0001d481d441141095b130
+go install
+cd $DVIDSRC/build
+make dvid
+
+
 # write out config file (!! must make firewall rule allowing traffic on port 8000)
 configtoml='
 [server]
@@ -170,8 +178,8 @@ logfile = "/usr/local/dvid.log"
 max_log_size = 500 # MB
 max_log_age = 30   # days
 [store]
-# if no store.metadata is provided, it defaults to store.mutable configuration
-   [store.mutable]
+# if no store.metadata is provided, it defaults to store.default configuration
+   [store.default]
    engine = "gbucket"
    bucket = "dvidrepos-flyem-internal"'
 echo "$configtoml" > /usr/local/dvid.toml
@@ -266,6 +274,7 @@ nohup dvid serve /usr/local/dvid.toml &> /dev/null &
 echo "Installing DVIDSparkServices"
 
 # install conda to root and retrieve spark services
+apt-get install -y libxss1 # needed for neuroproof
 apt-get install -y bzip2
 wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh
 bash Miniconda-latest-Linux-x86_64.sh -p /usr/local/miniconda2 -bf
