@@ -236,10 +236,14 @@ func servicesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// grab services from python
-	output, err := exec.Command("python", sparkWorkflowsLocation+"/"+workflowscript, "-w").Output()
+    cmdParts := []string{"python", sparkWorkflowsLocation+"/"+workflowscript, "-w"}
+    fmt.Println(strings.Join(cmdParts, " "))
+
+	output, err := exec.Command(cmdParts[0], cmdParts[1:]...).CombinedOutput()
+    fmt.Printf(string(output))
 
 	if err != nil {
-		badRequest(w, "internal failure to retrieve services")
+		badRequest(w, "Error: internal failure to retrieve services")
 		return
 	}
 
@@ -256,10 +260,14 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 
 	if requestType == "get" {
 		// grab service json schema from python
-		output, err := exec.Command("python", sparkWorkflowsLocation+"/"+workflowscript, "-d", pathlist[0]).Output()
+        cmdParts := []string{"python", sparkWorkflowsLocation+"/"+workflowscript, "-d", pathlist[0]}
+        fmt.Println(strings.Join(cmdParts, " "))
+
+        output, err := exec.Command(cmdParts[0], cmdParts[1:]...).CombinedOutput()
+        fmt.Printf(string(output))
 
 		if err != nil {
-			badRequest(w, "failure to find schema for given service")
+			badRequest(w, "Error: failure to find schema for given service")
 			return
 		}
 
