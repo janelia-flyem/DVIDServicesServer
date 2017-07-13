@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+"""
+Usage: prog <num spark nodes> <workflow name> <job id> <callback address> <spark services workflow script> <python location>
+
+Actions:
+    1. Launches a spark cluster and master node
+    2. Launches a DVIDSparkServices workflow (as a driver process)
+
+Assumptions:
+    1. The environment should be properly set by the driver.
+    2. spark_launch_janelia_lsf should be in the executable path
+"""
+
+import sys
+import os
+import re
+import time
+import subprocess
+
+def parse_bsub_output(bsub_output):
+    """
+    Parse the given output from the 'bsub' command and return the job ID and the queue name.
+
+    Example:
+        
+        >>> bsub_output = "Job <774133> is submitted to queue <spark>.\n"
+        >>> job_id, queue_name = parse_bsub_output(bsub_output)
+        >>> assert job_id == '774133'
+        >>> assert queue_name == 'spark'
+    """
+    nonbracket_text = '[^<>]*'
+    field_pattern = "{nonbracket_text}<({nonbracket_text})>{nonbracket_text}".format(**locals())
+
+    NUM_FIELDS = 2
+    field_matches = re.match(NUM_FIELDS*field_pattern, bsub_output)
+
+    if not field_matches:
+        raise RuntimeError("Could not parse bsub output: {}".format(bsub_output))
+
+    job_id = field_matches.groups()[0]
+    queue_name = field_matches.groups()[1]
+    return job_id, queue_name
+
+def get_hostname(job_id):
+    """
+    For the given job, return the name of the host it's running on.
+    If it is running on more than one host, the first hostname listed by bjobs is returned.
+    (For 'sparkbatch' jobs, the first host is the master.)
+    """
+    bjobs_output = subprocess.check_output('bjobs -X -noheader -o EXEC_HOST {}'.format(job_id), shell=True)
+    hostname = bjobs_output.split(':')[0].split('*')[-1].strip()
+    return hostname
+
+# (ADD CUSTOM NON-BLOCKING CALL TO LAUNCH SCRIPT ON SPARK MASTER!!)
+# use current environment and launch with number of machines (1 for master)
+
+num_spark_nodes = int(sys.argv[1]) + 1 # Add one for master
+job_name = sys.argv[3]
+num_slots = num_spark_nodes * 16
+
+cluster_launch_bsub_cmd = \
+    ( "bsub"
+      " -J {job_name}-cluster"           # job name in LSF
+      " -a 'sparkbatch(current)'"        # Spark environment, equivalent to old SGE '-pe spark' mode
+      " -n {num_slots}"                  # CPUs for master+workers
+      " -o {job_name}-cluster.log"       # stdout log
+      " -e {job_name}-cluster.errlog"    # stderr log
+      " dummy-string"
+    ).format(**locals())
+ 
+print("Launching spark cluster:")
+print(cluster_launch_bsub_cmd + "\n")
+bsub_output = subprocess.check_output(cluster_launch_bsub_cmd, shell=True)
+print(bsub_output)
+
+master_job_id, queue_name = parse_bsub_output(bsub_output)
+assert queue_name == 'spark', "Unexpected queue name for master job: {}".format(queue_name)
+
+print("Waiting for master to start...")
+wait_times = [1.0, 5.0, 10.0]
+master_hostname = get_hostname(master_job_id)
+while master_hostname == '-':
+    time.sleep(wait_times[0])
+    if len(wait_times) > 1:
+        wait_times = wait_times[1:]
+    master_hostname = get_hostname(master_job_id)
+
+print('...master is running on http://{}:8080\n'.format(master_hostname))
+    
+# Set MASTER now so that it will be inherited by the driver process
+os.environ["MASTER"] = "spark://{}:7077".format(master_hostname)
+
+# Set MASTER_BJOB_ID so the driver can kill the master when the workflow finishes.
+os.environ["MASTER_BJOB_ID"] = master_job_id
+
+driver_submit_cmd = \
+    ( "bsub"
+      " -J {job_name}-driver"        # job name in LSF
+      " -n 16"                       # CPUs for driver
+      " -o {job_name}-driver.log"    # stdout log
+      " -e {job_name}-driver.errlog" # stderr log
+      " 'sparklaunch_janelia_lsf_int --kill-master-on-exit {cmd_args}'"
+    ).format(job_name=job_name, cmd_args=' '.join(sys.argv[2:]))
+
+print("Launching spark driver:")
+print(driver_submit_cmd + "\n")
+bsub_output = subprocess.check_output(driver_submit_cmd, shell=True)
+print(bsub_output)
+
