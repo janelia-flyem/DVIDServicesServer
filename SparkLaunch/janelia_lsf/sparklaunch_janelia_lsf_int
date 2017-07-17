@@ -30,24 +30,13 @@ import tempfile
 import json
 from StringIO import StringIO
 
-##### CUSTOM CONFIG (global parameters -- change as needed!!) ####
-
-USER = os.environ['USER']
-
-# Location of spark distribution
-SPARK_HOME = "/usr/local/spark-current"
-
-# spark configuration path (disable default python)
-CONF_DIR = "/groups/flyem/proj/cluster/miniconda/envs/flyem/DVIDSparkServices/conf"
+DRIVER_HOSTNAME = socket.gethostname()
+SPARK_HOME = os.environ["SPARK_HOME"]
 
 # directory location of log file
 #LOG_DIR = os.path.expanduser('~') + "/sparkjoblogs"
 LOG_DIR = '/groups/flyem/data/scratchspace/sparkjoblogs'
 
-# DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
-DVIDSPARK_WORKFLOW_TMPDIR = "/scratch/" + USER
-
-DRIVER_HOSTNAME = socket.gethostname()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -86,25 +75,6 @@ def main():
     start = time.time()
     
     try:
-        # Add directories to PATH
-        PATH_DIRS = SPARK_HOME + "/bin:" + SPARK_HOME + "/sbin"
-    
-        # set path
-        curr_path = os.environ["PATH"]
-        os.environ["PATH"] = PATH_DIRS + ":" + curr_path
-    
-        # set spark path
-        os.environ["SPARK_HOME"] = SPARK_HOME
-    
-        # set configuration directory
-        os.environ["SPARK_CONF_DIR"] = CONF_DIR
-    
-        # set exact python to be used
-        os.environ["PYSPARK_PYTHON"] = args.pyspark_python_interpreter
-    
-        # DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
-        os.environ["DVIDSPARK_WORKFLOW_TMPDIR"] = DVIDSPARK_WORKFLOW_TMPDIR
-    
         # ******** Start Job ********
         configfile = args.config_or_callback_address
     

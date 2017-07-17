@@ -20,6 +20,25 @@ import argparse
 import subprocess
 from collections import namedtuple
 
+##################################################################
+##### CUSTOM CONFIG (global parameters -- change as needed!!) ####
+
+## NOTE: LSF jobs will inherit all of these environment variables by default. 
+
+USER = os.environ['USER']
+
+# Location of spark distribution
+SPARK_HOME = "/usr/local/spark-current"
+
+# spark configuration path (disable default python)
+CONF_DIR = "/groups/flyem/proj/cluster/miniconda/envs/flyem/DVIDSparkServices/conf"
+
+# DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
+DVIDSPARK_WORKFLOW_TMPDIR = "/scratch/" + USER
+
+##################################################################
+
+
 def parse_bsub_output(bsub_output):
     """
     Parse the given output from the 'bsub' command and return the job ID and the queue name.
@@ -54,9 +73,29 @@ def get_job_hostname(job_id):
     hostname = bjobs_output.split(':')[0].split('*')[-1].strip()
     return hostname
 
-def launch_spark_cluster(job_name, num_spark_workers):
+def launch_spark_cluster(job_name, num_spark_workers, pyspark_python_interpreter):
     num_nodes = num_spark_workers + 1 # Add one for master
     num_slots = num_nodes * 16
+    
+    # Add directories to PATH
+    PATH_DIRS = SPARK_HOME + "/bin:" + SPARK_HOME + "/sbin"
+
+    # set path
+    curr_path = os.environ["PATH"]
+    os.environ["PATH"] = PATH_DIRS + ":" + curr_path
+
+    # set spark path
+    os.environ["SPARK_HOME"] = SPARK_HOME
+
+    # set configuration directory
+    os.environ["SPARK_CONF_DIR"] = CONF_DIR
+
+    # set exact python to be used
+    os.environ["PYSPARK_PYTHON"] = pyspark_python_interpreter
+
+    # DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
+    os.environ["DVIDSPARK_WORKFLOW_TMPDIR"] = DVIDSPARK_WORKFLOW_TMPDIR
+
     
     cluster_launch_bsub_cmd = \
         ( "bsub"
@@ -129,7 +168,7 @@ def main():
     parser.add_argument('pyspark_python_interpreter')
     args = parser.parse_args()
     
-    master_job_id, master_hostname = launch_spark_cluster(args.job_name, args.num_spark_workers)
+    master_job_id, master_hostname = launch_spark_cluster(args.job_name, args.num_spark_workers, args.pyspark_python_interpreter)
         
     driver_args = DriverArgs( args.workflow_name,
                               args.job_name,
