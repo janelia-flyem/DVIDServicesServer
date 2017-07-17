@@ -106,7 +106,6 @@ def launch_spark_cluster(job_name, num_spark_workers, pyspark_python_interpreter
           " -a 'sparkbatch(current)'"        # Spark environment, equivalent to old SGE '-pe spark' mode
           " -n {num_slots}"                  # CPUs for master+workers
           " -o {job_name}-cluster.log"       # stdout log
-          " -e {job_name}-cluster.errlog"    # stderr log
           " dummy-string"
         ).format(**locals())
      
@@ -148,7 +147,6 @@ def launch_driver_job( master_job_id, master_hostname, num_driver_slots, driver_
           " -J {job_name}-driver"        # job name in LSF
           " -n {num_driver_slots}"       # CPUs for driver
           " -o {job_name}-driver.log"    # stdout log
-          " -e {job_name}-driver.errlog" # stderr log
           " 'sparklaunch_janelia_lsf_int --kill-master-on-exit {cmd_args}'"
         ).format( num_driver_slots=num_driver_slots,
                   job_name=driver_args.job_name,
