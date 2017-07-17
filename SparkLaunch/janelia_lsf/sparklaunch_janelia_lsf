@@ -96,6 +96,9 @@ def launch_spark_cluster(job_name, num_spark_workers, pyspark_python_interpreter
     # DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
     os.environ["DVIDSPARK_WORKFLOW_TMPDIR"] = DVIDSPARK_WORKFLOW_TMPDIR
 
+    # Some DVIDSparkServices functions need this information,
+    # and it isn't readily available via any PySpark API.    
+    os.environ["NUM_SPARK_WORKERS"] = str(num_spark_workers)
     
     cluster_launch_bsub_cmd = \
         ( "bsub"
