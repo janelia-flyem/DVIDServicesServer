@@ -33,11 +33,6 @@ from StringIO import StringIO
 DRIVER_HOSTNAME = socket.gethostname()
 SPARK_HOME = os.environ["SPARK_HOME"]
 
-# directory location of log file
-#LOG_DIR = os.path.expanduser('~') + "/sparkjoblogs"
-LOG_DIR = '/groups/flyem/data/scratchspace/sparkjoblogs'
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--kill-master-on-exit', action='store_true')
@@ -91,36 +86,40 @@ def main():
             configfile = configfile + "/config"
     
         # call workflow and wait
-        try:
-            job_output = subprocess.check_output([SPARK_HOME + '/bin/spark-submit',
-                                                  args.launch_workflow_script,
-                                                  args.workflow_name,
-                                                  '-c',
-                                                  configfile])
-            driver_output.write( job_output + "\n" )
-            successful = True
-        finally:
-            time.sleep(20)
-    
-    except subprocess.CalledProcessError as ex:
-        traceback.print_exc(file=driver_output)
-        driver_output.write(ex.output)    
-        driver_output.write("Subprocess return code: {}\n".format(ex.returncode) )
-        raise    
-    
-    except:
-        traceback.print_exc(file=driver_output)
-        raise
-    
+        workflow_proc = subprocess.Popen( [ SPARK_HOME + '/bin/spark-submit',
+                                            args.launch_workflow_script,
+                                            args.workflow_name,
+                                            '-c',
+                                            configfile ],
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT )
+        
+        # Tee each line of output to both stdout and our driver_output file
+        # (so we can send it to the network callback) 
+        for line in iter(workflow_proc.stdout.readline, ''):
+            sys.stdout.write(line)
+            sys.stdout.flush()
+            driver_output.write(line)
+
+        # Wait for final process exit.
+        # (I don't think there can be anything left on stdout,
+        # but just in case, we'll capture it and write it.)
+        last_lines, _ = workflow_proc.communicate()
+        sys.stdout.write(last_lines)
+        sys.stdout.flush()
+        driver_output.write(last_lines)
+
     finally:
         # record time
         finish = time.time()
-        driver_output.write( "\n" + "Total Time: " + str(finish-start) + "\n" )
+        msg = "\n" + "Total Time: " + str(finish-start) 
+        driver_output.write(msg + "\n")
+        print(msg)
         
         # write status and message
         status = {}
         status["sparkAddr"] = ""
-        if not successful:
+        if workflow_proc.returncode != 0:
             status["job_status"] = "Error"
         else:
             status["job_status"] = "Finished"
@@ -130,14 +129,14 @@ def main():
         if hascallback:
             requests.post(args.config_or_callback_address, data=status_str, headers=json_header)
         
-        # write to file
-        with open(LOG_DIR + "/" + args.job_name +'.log', 'w') as fout:
-            fout.write(driver_output.getvalue() + "\n")
-            fout.write( "Launch script done: {}\n".format( {True: "successful", False: "UNSUCCESSFUL"}[successful] ) )
+        print( "Launch script done: {}".format({True: "successful", False: "UNSUCCESSFUL"}[(workflow_proc.returncode == 0)] ) )
+        if workflow_proc.returncode != 0:
+            print("Spark process exited with code: {}".format(workflow_proc.returncode))
+        
 
         if args.kill_master_on_exit:
             # Kill the spark cluster
-            print('Killing Spark Master (JOB_ID={})'.format(MASTER_BJOB_ID))
+            print('Job complete; Killing Spark Master (JOB_ID={})'.format(MASTER_BJOB_ID))
             subprocess.check_call('bkill {}'.format(MASTER_BJOB_ID), shell=True)
 
 if __name__ == "__main__":
