@@ -151,7 +151,7 @@ def launch_driver_job( master_job_id, master_hostname, num_driver_slots, job_log
           " -n {num_driver_slots}"       # CPUs for driver
           " -W {max_runtime_minutes}"    # Terminate after max minutes
           " -o {job_log_dir}/{job_name}-driver.log"    # stdout log
-          " 'sparklaunch_janelia_lsf_int --kill-master-on-exit {cmd_args}'"
+          " 'sparklaunch_janelia_lsf_int --kill-master-on-exit --email-on-exit {cmd_args}'"
         ).format( num_driver_slots=num_driver_slots,
                   job_name=driver_args.job_name,
                   job_log_dir=job_log_dir,

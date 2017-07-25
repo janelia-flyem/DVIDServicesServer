@@ -28,6 +28,9 @@ import time
 import requests
 import tempfile
 import json
+import getpass
+import smtplib
+from email.mime.text import MIMEText
 from StringIO import StringIO
 
 DRIVER_HOSTNAME = socket.gethostname()
@@ -36,6 +39,7 @@ SPARK_HOME = os.environ["SPARK_HOME"]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--kill-master-on-exit', action='store_true')
+    parser.add_argument('--email-on-exit', action='store_true')
     parser.add_argument('workflow_name')
     parser.add_argument('job_name')
     parser.add_argument('config_or_callback_address')
@@ -138,6 +142,21 @@ def main():
             # Kill the spark cluster
             print('Job complete; Killing Spark Master (JOB_ID={})'.format(MASTER_BJOB_ID))
             subprocess.check_call('bkill {}'.format(MASTER_BJOB_ID), shell=True)
+
+        if args.email_on_exit:
+            body = "Workflow {} exited with code: {}\n"\
+                    "Job name: {}\n"\
+                   "Config file: {}\n"\
+                   .format(args.workflow_name, workflow_proc.returncode, args.job_name, args.config_or_callback_address)
+
+            msg = MIMEText(body)
+            msg['Subject'] = 'Spark job exited: {}'.format(workflow_proc.returncode)
+            msg['From'] = 'sparklaunch_janelia_lsf <{}@{}>'.format(getpass.getuser(), socket.gethostname())
+            msg['To'] = '{}@janelia.hhmi.org'.format(getpass.getuser())
+
+            s = smtplib.SMTP('mail.hhmi.org')
+            s.sendmail(msg['From'], [msg['To']], msg.as_string())
+            s.quit()
 
 if __name__ == "__main__":
     main()
