@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Usage: prog <num spark nodes> <workflow name> <job name> <callback address> <spark services workflow script> <python location>
+Usage: prog <num spark nodes> <workflow name> <job name> <callback address> <spark services workflow script>
 
 Actions:
     1. Launches a spark cluster and master node
@@ -14,27 +14,29 @@ Assumptions:
 from __future__ import print_function
 import sys
 import os
+from os.path import abspath, dirname, basename, splitext 
 import re
 import time
+from datetime import datetime
 import argparse
 import subprocess
 from collections import namedtuple
 
-##################################################################
-##### CUSTOM CONFIG (global parameters -- change as needed!!) ####
+# Note: You must run this script with the same python interpreter that will run the workflow
+import DVIDSparkServices
 
 ## NOTE: LSF jobs will inherit all of these environment variables by default. 
-
-USER = os.environ['USER']
 
 # Location of spark distribution
 SPARK_HOME = "/usr/local/spark-current"
 
 # spark configuration path (disable default python)
-CONF_DIR = "/groups/flyem/proj/cluster/miniconda/envs/flyem/DVIDSparkServices/conf"
+# FIXME: This won't work if DVIDSparkServices is 'installed' to the python interpreter.
+#        The 'conf' dir is in the top-level of the repo and won't get installed!
+CONF_DIR = abspath(dirname(DVIDSparkServices.__file__) + '/../conf')
 
 # DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
-DVIDSPARK_WORKFLOW_TMPDIR = "/scratch/" + USER
+DVIDSPARK_WORKFLOW_TMPDIR = "/scratch/" + os.environ['USER']
 
 ##################################################################
 
@@ -73,7 +75,7 @@ def get_job_hostname(job_id):
     hostname = bjobs_output.split(':')[0].split('*')[-1].strip()
     return hostname
 
-def launch_spark_cluster(job_name, num_spark_workers, max_hours, pyspark_python_interpreter, job_log_dir):
+def launch_spark_cluster(job_name, num_spark_workers, max_hours, job_log_dir):
     num_nodes = num_spark_workers + 1 # Add one for master
     num_slots = num_nodes * 16
     max_runtime_minutes = max_hours * 60
@@ -92,7 +94,7 @@ def launch_spark_cluster(job_name, num_spark_workers, max_hours, pyspark_python_
     os.environ["SPARK_CONF_DIR"] = CONF_DIR
 
     # set exact python to be used
-    os.environ["PYSPARK_PYTHON"] = pyspark_python_interpreter
+    os.environ["PYSPARK_PYTHON"] = sys.executable
 
     # DVIDSparkServices will check this variable and use to override Python's tempfile.tempdir
     os.environ["DVIDSPARK_WORKFLOW_TMPDIR"] = DVIDSPARK_WORKFLOW_TMPDIR
@@ -103,11 +105,11 @@ def launch_spark_cluster(job_name, num_spark_workers, max_hours, pyspark_python_
     
     cluster_launch_bsub_cmd = \
         ( "bsub"
-          " -J {job_name}-cluster"           # job name in LSF
-          " -a 'sparkbatch(current)'"        # Spark environment, equivalent to old SGE '-pe spark' mode
-          " -n {num_slots}"                  # CPUs for master+workers
-          " -W  {max_runtime_minutes}"       # Terminate after max minutes
-          " -o {job_log_dir}/{job_name}-cluster.log"       # stdout log
+          " -J {job_name}-cluster"                   # job name in LSF
+          " -a 'sparkbatch(current)'"                # Spark environment, equivalent to old SGE '-pe spark' mode
+          " -n {num_slots}"                          # CPUs for master+workers
+          " -W {max_runtime_minutes}"                # Terminate after max minutes
+          " -o {job_log_dir}/{job_name}-cluster.log" # stdout log
           " dummy-string"
         ).format(**locals())
      
@@ -132,31 +134,25 @@ def launch_spark_cluster(job_name, num_spark_workers, max_hours, pyspark_python_
     
     return master_job_id, master_hostname
 
-# This order is determined by the command-line API of sparklaunch_janelia_lsf_int
-DriverArgs = namedtuple('DriverArgs',
-                        'workflow_name job_name config_or_callback_address launch_workflow_script pyspark_python_interpreter')
-
-def launch_driver_job( master_job_id, master_hostname, num_driver_slots, job_log_dir, max_hours, driver_args):
+def launch_driver_job( master_job_id, master_hostname, num_driver_slots, job_log_dir, max_hours, job_name, workflow_name, config_file):
     max_runtime_minutes = max_hours * 60
-    assert isinstance(driver_args, DriverArgs)
     # Set MASTER now so that it will be inherited by the driver process
     os.environ["MASTER"] = "spark://{}:7077".format(master_hostname)
     
     # Set MASTER_BJOB_ID so the driver can kill the master when the workflow finishes.
     os.environ["MASTER_BJOB_ID"] = master_job_id
     
+    job_cmd = "sparklaunch_janelia_lsf_int --kill-master-on-exit --email-on-exit {workflow_name} {config_file}"\
+              .format(**locals())
+
     driver_submit_cmd = \
         ( "bsub"
-          " -J {job_name}-driver"        # job name in LSF
-          " -n {num_driver_slots}"       # CPUs for driver
-          " -W {max_runtime_minutes}"    # Terminate after max minutes
-          " -o {job_log_dir}/{job_name}-driver.log"    # stdout log
-          " 'sparklaunch_janelia_lsf_int --kill-master-on-exit --email-on-exit {cmd_args}'"
-        ).format( num_driver_slots=num_driver_slots,
-                  job_name=driver_args.job_name,
-                  job_log_dir=job_log_dir,
-                  max_runtime_minutes=max_runtime_minutes,
-                  cmd_args=' '.join(driver_args) )
+          " -J {job_name}-driver"                   # job name in LSF
+          " -n {num_driver_slots}"                  # CPUs for driver
+          " -W {max_runtime_minutes}"               # Terminate after max minutes
+          " -o {job_log_dir}/{job_name}-driver.log" # stdout log
+          " '{job_cmd}'"
+        ).format( **locals() )
     
     print("Launching spark driver:")
     print(driver_submit_cmd + "\n")
@@ -168,24 +164,27 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--driver-slots', type=int, default=16)
     parser.add_argument('--job-log-dir', type=str, default='.')
-    parser.add_argument('--max-hours', type=int, default=24)
+    parser.add_argument('--max-hours', type=int, default=8)
+    parser.add_argument('--job-name')
     parser.add_argument('num_spark_workers', type=int)
     parser.add_argument('workflow_name')
-    parser.add_argument('job_name')
-    parser.add_argument('config_or_callback_address')
-    parser.add_argument('launch_workflow_script')
-    parser.add_argument('pyspark_python_interpreter')
+    parser.add_argument('config_file')
     args = parser.parse_args()
-    
-    master_job_id, master_hostname = launch_spark_cluster(args.job_name, args.num_spark_workers, args.max_hours, args.pyspark_python_interpreter, args.job_log_dir)
-        
-    driver_args = DriverArgs( args.workflow_name,
-                              args.job_name,
-                              args.config_or_callback_address,
-                              args.launch_workflow_script,
-                              args.pyspark_python_interpreter )
 
-    launch_driver_job( master_job_id, master_hostname, args.driver_slots, args.job_log_dir, args.max_hours, driver_args )
+    if not args.job_name:
+        config_name = splitext(basename(args.config_file))[0]
+        args.job_name = config_name + '-{:%Y%m%d.%H%M%S}'.format(datetime.now())
     
+    master_job_id, master_hostname = launch_spark_cluster(args.job_name, args.num_spark_workers, args.max_hours, args.job_log_dir)
+
+    launch_driver_job( master_job_id,
+                       master_hostname,
+                       args.driver_slots,
+                       args.job_log_dir,
+                       args.max_hours,
+                       args.job_name,
+                       args.workflow_name,
+                       args.config_file )
+
 if __name__ == "__main__":
     main()
