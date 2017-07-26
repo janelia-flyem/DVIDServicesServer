@@ -65,8 +65,6 @@ def main():
             sys.exit(1)
         MASTER_BJOB_ID = os.environ['MASTER_BJOB_ID']        
     
-    ##### CUSTOM CONFIGURATION ###########
-        
     driver_output = StringIO()
     successful = False
     
@@ -115,8 +113,8 @@ def main():
 
     finally:
         # record time
-        finish = time.time()
-        msg = "\n" + "Total Time: " + str(finish-start) 
+        duration = time.time() - start
+        msg = "\n" + "Total Time: " + str(duration) 
         driver_output.write(msg + "\n")
         print(msg)
         
@@ -144,19 +142,23 @@ def main():
             subprocess.check_call('bkill {}'.format(MASTER_BJOB_ID), shell=True)
 
         if args.email_on_exit:
-            body = "Workflow {} exited with code: {}\n"\
-                    "Job name: {}\n"\
-                   "Config file: {}\n"\
-                   .format(args.workflow_name, workflow_proc.returncode, args.job_name, args.config_or_callback_address)
+            send_exit_email(args.workflow_name, workflow_proc.returncode, duration, args.job_name, args.config_or_callback_address)
 
-            msg = MIMEText(body)
-            msg['Subject'] = 'Spark job exited: {}'.format(workflow_proc.returncode)
-            msg['From'] = 'sparklaunch_janelia_lsf <{}@{}>'.format(getpass.getuser(), socket.gethostname())
-            msg['To'] = '{}@janelia.hhmi.org'.format(getpass.getuser())
+def send_exit_email(workflow_name, returncode, duration, job_name, config_file):
+    body = "Workflow {} exited with code: {}\n"\
+            "Duration: {}"\
+            "Job name: {}\n"\
+           "Config file: {}\n"\
+           .format(workflow_name, returncode, duration, job_name, config_file)
 
-            s = smtplib.SMTP('mail.hhmi.org')
-            s.sendmail(msg['From'], [msg['To']], msg.as_string())
-            s.quit()
+    msg = MIMEText(body)
+    msg['Subject'] = 'Spark job exited: {}'.format(workflow_proc.returncode)
+    msg['From'] = 'sparklaunch_janelia_lsf <{}@{}>'.format(getpass.getuser(), socket.gethostname())
+    msg['To'] = '{}@janelia.hhmi.org'.format(getpass.getuser())
+
+    s = smtplib.SMTP('mail.hhmi.org')
+    s.sendmail(msg['From'], [msg['To']], msg.as_string())
+    s.quit()
 
 if __name__ == "__main__":
     main()
