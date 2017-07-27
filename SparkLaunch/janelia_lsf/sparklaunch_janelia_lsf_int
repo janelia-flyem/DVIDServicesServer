@@ -31,6 +31,7 @@ import tempfile
 import json
 import getpass
 import smtplib
+from datetime import timedelta
 from collections import namedtuple
 from email.mime.text import MIMEText
 from StringIO import StringIO
@@ -119,7 +120,7 @@ def main():
 
     finally:
         # record time
-        duration = time.time() - start
+        duration = timedelta(seconds=int(time.time() - start))
         msg = "\n" + "Total Time: " + str(duration) 
         driver_output.write(msg + "\n")
         print(msg)
@@ -157,7 +158,7 @@ def main():
 
 def send_exit_email(workflow_name, returncode, duration, config_file):
     body = "Workflow {} exited with code: {}\n"\
-            "Duration: {}"\
+            "Duration: {}\n"\
             "Job name: {}\n"\
            "Config file: {}\n"\
            .format(workflow_name, returncode, duration, LSB_JOBNAME, config_file)
