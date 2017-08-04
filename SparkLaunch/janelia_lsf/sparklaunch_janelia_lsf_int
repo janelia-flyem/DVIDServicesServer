@@ -156,6 +156,8 @@ def main():
         if args.email_on_exit:
             send_exit_email(args.workflow_name, workflow_proc.returncode, duration, args.config_or_callback_address)
 
+        print("EXITING Driver job")
+        
 def send_exit_email(workflow_name, returncode, duration, config_file):
     body = "Workflow {} exited with code: {}\n"\
             "Duration: {}\n"\
@@ -174,3 +176,4 @@ def send_exit_email(workflow_name, returncode, duration, config_file):
 
 if __name__ == "__main__":
     main()
+
